@@ -16,7 +16,6 @@ namespace Api.Controllers
             _userService = userService;
         }
 
-
         [HttpPost]
         public async Task<TokenModel> Token(TokenRequestModel model)
             => await _userService.GetToken(model.Login, model.Pass);

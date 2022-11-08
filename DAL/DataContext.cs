@@ -14,7 +14,6 @@ namespace DAL
         {
 
         }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder
@@ -23,12 +22,14 @@ namespace DAL
                 .IsUnique();
             modelBuilder
                .Entity<User>()
-               .HasIndex(f => f.Name)
+               .HasIndex(f => f.Username)
                .IsUnique();
 
             modelBuilder.Entity<Avatar>().ToTable(nameof(Avatars));
-        
-    }
+            modelBuilder.Entity<Post>().ToTable(nameof(Posts));
+            modelBuilder.Entity<PostContent>().ToTable(nameof(PostContent));
+            modelBuilder.Entity<Comment>().ToTable(nameof(Comments));
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             => optionsBuilder.UseNpgsql(b => b.MigrationsAssembly("Api"));
@@ -36,6 +37,10 @@ namespace DAL
         public DbSet<User> Users => Set<User>();
         public DbSet<UserSession> UserSessions => Set<UserSession>();
         public DbSet<Attach> Attaches => Set<Attach>();
-        public DbSet<Avatar> Avatars => Set<Avatar>();  
+        public DbSet<Avatar> Avatars => Set<Avatar>();
+        public DbSet<Post> Posts => Set<Post>();
+        public DbSet<PostContent> PostContent => Set<PostContent>();
+        public DbSet<Comment> Comments => Set<Comment>();
+        //TODO: добавить сущности лайков: для комментов и постов
     }
 }

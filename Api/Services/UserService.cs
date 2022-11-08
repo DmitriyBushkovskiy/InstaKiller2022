@@ -19,32 +19,33 @@ namespace Api.Services
         private readonly DAL.DataContext _context;
         private readonly AuthConfig _config;
 
-        public UserService(IMapper mapper, IOptions<AuthConfig> config, DataContext context)
+        public UserService(IMapper mapper, DataContext context, IOptions<AuthConfig> config)
         {
             _mapper = mapper;
             _context = context;
             _config = config.Value;
-
         }
 
         public async Task<bool> CheckUserExist(string email)
         {
-
             return await _context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower());
-
         }
 
-        public async Task AddAvatarToUser(Guid userId, MetadataModel meta, string filePath)
+        public async Task AddAvatarToUser(Guid userId, MetadataModel model, string filePath)
         {
-            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == userId);
+             var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == userId);
             if (user != null)
             {
-                var avatar = new Avatar { Author = user, MimeType = meta.MimeType, FilePath = filePath, Name = meta.Name, Size = meta.Size };
+                var avatar = new Avatar {   Author = user, 
+                                            MimeType = model.MimeType, 
+                                            FilePath = filePath, 
+                                            Name = model.Name, 
+                                            Size = model.Size , 
+                                            User = user, 
+                                            UserID = user.Id };
                 user.Avatar = avatar;
-
                 await _context.SaveChangesAsync();
             }
-
         }
 
         public async Task<AttachModel> GetUserAvatar(Guid userId)
@@ -71,6 +72,7 @@ namespace Api.Services
             await _context.SaveChangesAsync();
             return t.Entity.Id;
         }
+
         public async Task<List<UserModel>> GetUsers()
         {
             return await _context.Users.AsNoTracking().ProjectTo<UserModel>(_mapper.ConfigurationProvider).ToListAsync();
@@ -83,12 +85,11 @@ namespace Api.Services
                 throw new Exception("user not found");
             return user;
         }
+
         public async Task<UserModel> GetUser(Guid id)
         {
             var user = await GetUserById(id);
-
             return _mapper.Map<UserModel>(user);
-
         }
 
         private async Task<DAL.Entities.User> GetUserByCredention(string login, string pass)
@@ -114,7 +115,7 @@ namespace Api.Services
                 audience: _config.Audience,
                 notBefore: dtNow,
                 claims: new Claim[] {
-            new Claim(ClaimsIdentity.DefaultNameClaimType, session.User.Name),
+            new Claim(ClaimsIdentity.DefaultNameClaimType, session.User.Username),
             new Claim("sessionId", session.Id.ToString()),
             new Claim("id", session.User.Id.ToString()),
             },
@@ -136,8 +137,12 @@ namespace Api.Services
             return new TokenModel(encodedJwt, encodedRefresh);
 
         }
+
         public async Task<TokenModel> GetToken(string login, string password)
         {
+            //TODO: проверка подтверждена ли почта
+            //TODO: не заблокирован ли аккаунт подтверждена ли почта
+            //TODO: использование юзернейма или почты к качестве логина
             var user = await GetUserByCredention(login, password);
             var session = await _context.UserSessions.AddAsync(new DAL.Entities.UserSession
             {
@@ -159,6 +164,7 @@ namespace Api.Services
             }
             return session;
         }
+
         private async Task<UserSession> GetSessionByRefreshToken(Guid id)
         {
             var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id);

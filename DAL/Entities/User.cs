@@ -9,13 +9,21 @@ namespace DAL.Entities
     public class User
     {
         public Guid Id { get; set; }
-        public string Name { get; set; } = "empty";
+        public string Username { get; set; } = "empty";
         public string Email { get; set; } = "empty";
         public string PasswordHash { get; set; } = "empty"; 
-        public DateTimeOffset BirthDay { get; set; }
-        public long? AvatarId { get; set; }
-
+        public DateTimeOffset BirthDate { get; set; }
         public virtual Avatar? Avatar { get; set; }
         public virtual ICollection<UserSession>? Sessions { get; set; }
+        //TODO: добавить дополнительные поля:
+        // string Fullname
+        // string Bio
+        // string Phone
+        // bool IsPhineConfirmed
+        // bool IsEmailConfirmed
+        // bool PrivateAccount
+        // ICollection<Guid> followers
+        // ICollection<Guid> following
+        // bool isActive
     }
 }

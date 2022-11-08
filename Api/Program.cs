@@ -65,6 +65,8 @@ internal class Program
         builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
 
         builder.Services.AddScoped<UserService>();
+        builder.Services.AddTransient<AttachService>();
+        builder.Services.AddScoped<PostService>();
 
         builder.Services.AddAuthentication(o =>
         {
@@ -83,7 +85,6 @@ internal class Program
                 IssuerSigningKey = authConfig.SymmetricSecurityKey(),
                 ClockSkew = TimeSpan.Zero,
             };
-            
         });
 
         builder.Services.AddAuthorization(o =>

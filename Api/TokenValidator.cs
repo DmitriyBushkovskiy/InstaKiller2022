@@ -13,7 +13,6 @@ namespace Api
         public TokenValidatorMiddleware(RequestDelegate next)
         {
             _next = next;
-
         }
 
         public async Task InvokeAsync(HttpContext context, UserService userService)
@@ -28,20 +27,12 @@ namespace Api
                     isOk = false;
                     context.Response.Clear();
                     context.Response.StatusCode = 401;
-                   
                 }
             }
             if (isOk)
             {
                 await _next(context);
             }
-
-
-            //var principal = new JwtSecurityTokenHandler().ValidateToken(, validParams, out var securityToken);
-
-
-
-
         }
     }
     public static class TokenValidatorMiddlewareExtensions
