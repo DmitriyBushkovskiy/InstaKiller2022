@@ -1,5 +1,4 @@
 ﻿using Api.Configs;
-using Api.Models;
 using AutoMapper;
 using DAL;
 using DAL.Entities;
@@ -10,6 +9,13 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Api.Controllers;
 using Microsoft.AspNetCore.Authorization;
+using Api.Models.User;
+using Api.Models.Attach;
+using Api.Models.Comment;
+using Api.Models.Post;
+using Api.Models.PostContent;
+using Microsoft.AspNetCore.Routing;
+using System.IO;
 
 namespace Api.Services
 {
@@ -17,62 +23,64 @@ namespace Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
-        private readonly AuthConfig _config;
-        private readonly AttachService _attachService;
 
-        public PostService(IMapper mapper, DataContext context, IOptions<AuthConfig> config)
+        public PostService(IMapper mapper, DataContext context)
         {
             _mapper = mapper;
             _context = context;
-            _config = config.Value;
-            _attachService = new AttachService(mapper, context, config); // TODO: переделать
         }
 
-        public async Task CreatePostWithUploadingFiles(List<IFormFile> files, Guid userId, string postText)
+        public async Task<AttachModel> GetPostContent(Guid postContentId)
         {
-            var models = await _attachService.UploadFiles(files);
-            await CreatePost(models, userId, postText);
+            var res = await _context.PostContent.FirstOrDefaultAsync(x => x.Id == postContentId);
+            return _mapper.Map<AttachModel>(res);
         }
 
-        public async Task CreatePost(List<MetadataModel> models, Guid userId, string postText)
+        public async Task CreatePost(CreatePostRequest request, Guid userId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null)
-            {
                 throw new Exception("user not found");
-            }
-            var post = new Post { AuthorID = userId, Created = DateTimeOffset.UtcNow, Id = Guid.NewGuid(), Text = postText };
+            var post = new Post()
+            {
+                Id = Guid.NewGuid(),
+                Author = user,
+                AuthorID = userId,
+                Created = DateTimeOffset.UtcNow,
+                Description = request.Description,
+            };
+            post.Content = CreatePostContent(request.Contents, user, post);
             _context.Posts.Add(post);
-            await _context.SaveChangesAsync();
-            post.Content = await CreatePostContent(models, user, post.Id);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostContent>> CreatePostContent(List<MetadataModel> models, User user, Guid postID)
+        public List<PostContent> CreatePostContent(List<MetadataModel> models, User user, Post post)
         {
             var result = new List<PostContent>();
+            var directory = Path.Combine(Directory.GetCurrentDirectory(), "attaches");
+            var destFi = new FileInfo(directory);
+            if (destFi.Directory != null && !destFi.Directory.Exists)
+                destFi.Directory.Create();
             foreach (var model in models)
             {
                 var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
                 if (!tempFi.Exists)
-                    throw new Exception("file not found");
-                var path = Path.Combine(Directory.GetCurrentDirectory(), "attaches", model.TempId.ToString());
-                var destFi = new FileInfo(path);
-                if (destFi.Directory != null && !destFi.Directory.Exists)
-                    destFi.Directory.Create();
+                    continue;
+                var path = Path.Combine(directory, model.TempId.ToString());
                 File.Copy(tempFi.FullName, path, true);
-                var postImage = new PostContent() {   Author = user, 
-                                                    FilePath = path, 
-                                                    MimeType = model.MimeType, 
-                                                    Name = model.Name, 
-                                                    Size = model.Size, 
-                                                    PostID = postID, 
-                                                    User = user,
-                                                    UserID = user.Id };
-                result.Add(postImage);
-                _context.PostContent.Add(postImage);
+                var postContent = new PostContent() 
+                { 
+                    Author = user,
+                    FilePath = path, 
+                    MimeType = model.MimeType, 
+                    Name = model.Name, 
+                    Size = model.Size, 
+                    PostID = post.Id,
+                    Post = post 
+                };
+                tempFi.Delete();
+                result.Add(postContent);
             }
-            await _context.SaveChangesAsync();
             return result;
         }
 
@@ -80,175 +88,70 @@ namespace Api.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null)
-            {
                 throw new Exception("user not found");
-            }
             if (!await CheckPostExist(postId))
-            {
                 throw new Exception("post is not exist");
-            }
             if (!await CheckUserHasPost(userId, postId))
-            {
                 throw new Exception("you are not the owner of the post");
-            };
-            var post = await GetPostById(postId);
-            post.Content = await CreatePostContent(models, user, postId);
+            var post = await _context.Posts.FirstAsync(x => x.Id == postId);
+            post.Content = CreatePostContent(models, user, post);
+            post.Changed = true;
             await _context.SaveChangesAsync();
         }
 
-        public async Task< List<Guid>> GetListPostsIdsByUserId(Guid userId)
+        public async Task<PostModel> GetPost(Guid postId)
         {
-            if (!await CheckUserExist(userId))
-            {
-                throw new Exception("user not found");
-            }
-            return await _context.Posts.Where(x => x.AuthorID == userId).Select(x => x.Id).ToListAsync();
-        }
-
-        private async Task<Post> GetPostById(Guid postId)
-        {
-            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
-            if (post == null)
-            {
+            //TODO: проверка что можешь просматривать чужой пост
+            if (!await CheckPostExist(postId))
                 throw new Exception("post is not exist");
-            }
-            else 
-            {
-                return post; 
-            }
-        }
+            var post = await _context.Posts.Include(x=>x.Author)
+                                                .ThenInclude(x=>x.Avatar)
+                                            .Include(x=>x.Comments)
+                                            .Include(x=>x.Content)
+                                           .FirstAsync(x => x.Id == postId);
 
-        public async Task<PostModel> GetPostModelByID(Guid postId)
-        {
-            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
-            if (post == null)
-            {
-                throw new Exception("post is not exist");
-            }
             var postModel = _mapper.Map<PostModel>(post);
-            postModel.PostContent = await GetContentByPostId(postId);
-            postModel.Comments = await GetCommentsByPostId(postId);
-            postModel.Author = await GetUserAvatarLinkById(post.AuthorID);
+            postModel.PostContent = post.Content.Select(x=>_mapper.Map<PostContentModel>(x)).ToList();
+            postModel.Comments = await GetComments(postId);
             return postModel;
         }
-        private async Task<UserAvatarModel> GetUserAvatarLinkById(Guid id)
-        {
-            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == id);
-            if (user == null)
-                throw new Exception("user not found");
-            var userAvatar = _mapper.Map<UserAvatarModel>(user) ;
-            userAvatar.Avarar = user.Avatar == null ? null : GetLinkToAttachById(user.Avatar.Id);
-            return userAvatar;
-        }
 
-        public async Task CreateComment(string commentText, Guid postId, Guid userId)
+        public async Task CreateComment(CreateComment commentRequest, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null)
-            {
+            if (!await CheckUserExist(userId))
                 throw new Exception("user not found");
-            }
-            if (!await CheckPostExist(postId))
-            {
+            if (!await CheckPostExist(commentRequest.PostId))
                 throw new Exception("post is not exist");
-            }
-            var post = await GetPostById(postId);
-            var comment = new Comment() {   Id = Guid.NewGuid(), 
-                                            CommentText = commentText, 
-                                            Created = DateTimeOffset.UtcNow, 
-                                            PostId = postId, 
-                                            UserId = userId, 
-                                            Changed = false, 
-                                            Author = user, 
-                                            Post = post };
+            var comment = _mapper.Map<Comment>(commentRequest);
+            comment.UserId = userId;
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<CommentModel> GetCommentById(Guid commentId)
+        public async Task<CommentModel> GetComment(Guid commentId)
         {
-            var comment = await _context.Comments.FirstOrDefaultAsync(x => x.Id == commentId);
-            if (comment == null)
-            {
+            if (!await CheckCommentExist(commentId))
                 throw new Exception("comment is not exist");
-            }
+            var comment = await _context.Comments.FirstAsync(x => x.Id == commentId);
             var commentModel = _mapper.Map<CommentModel>(comment);
-            var username = _context.Users.FirstOrDefault(x => x.Id == comment.UserId)?.Username;
-            if (username == null)
-            {
-                throw new Exception("username field is empty");
-            }
-            commentModel.Username = username;
-            //TODO: добавить заполнение поля лайков
+            commentModel.Username = _context.Users.First(x => x.Id == comment.UserId).Username;
+            //TODO: добавить заполнение поля лайков для комментариев
             return commentModel;
         }
 
-        public async Task<List<CommentModel>> GetCommentsByPostId(Guid postId)
+        public async Task<List<CommentModel>> GetComments(Guid postId)
         {
             if (!await CheckPostExist(postId))
-            {
                 throw new Exception("post is not exist");
-            }
             var result = new List<CommentModel>();
-            var commentsIds = _context.Comments.Where(x => x.PostId == postId).OrderBy(x=>x.Created).Select(x => x.Id).ToList();
-            foreach (var commentId in commentsIds)
+            foreach (var commentId in _context.Comments.Where(x => x.PostId == postId).OrderBy(x => x.Created).Select(x => x.Id).ToList())
             {
-                var comment = await GetCommentById(commentId);
-                result.Add(comment);
+                result.Add(await GetComment(commentId));
             }
             return result;
         }
 
-        public async Task<PostContentModel> GetPostContentById(Guid poctContentId)
-        {
-            var attach = await _context.Attaches.FirstOrDefaultAsync(x => x.Id == poctContentId);
-            return _mapper.Map<PostContentModel>(attach);
-        }
-
-        public async Task<List<PostContentModel>> GetContentByPostId(Guid postId)
-        {
-            var result = new List<PostContentModel>();
-            var IDs = await GetListContentIdsByPostId(postId);
-            foreach (var postImageId in IDs)
-            {
-                var content = await GetPostContentById(postImageId);
-                content.connectLink = GetLinkToAttachById(postImageId);
-                result.Add(content);
-            }
-            return result;
-        }
-
-        [AllowAnonymous]
-        public async Task<AttachModel> GetAttachById(Guid attachId)
-        {
-            if (!await CheckAttachExist(attachId))
-            {
-                throw new Exception("Image not exist");
-            }
-            var postImage = await _context.Attaches.FirstOrDefaultAsync(x => x.Id == attachId);
-            var attach = _mapper.Map<AttachModel>(postImage);
-            return attach;
-        }
-
-        public async Task<List<Guid>> GetListContentIdsByPostId(Guid postId)
-        {
-            return await _context.PostContent.Where(x => x.PostID == postId).Select(x=>x.Id).ToListAsync();
-        }
-
-        public string GetLinkToAttachById(Guid attachId)
-        {
-            return @"/api/Post/" + nameof(GetAttachById) + "?attachId=" + attachId.ToString();
-        }
-
-        public Guid ParseStringToGuid(string _string)
-        {
-            if (Guid.TryParse(_string, out var guid))
-            {
-                return guid;
-            }
-            else
-                throw new Exception("you are not authorized");
-        }
+        //TODO: добавить метод изменения коммента
 
         public async Task<bool> CheckPostExist(Guid postId)
         {
@@ -262,13 +165,17 @@ namespace Api.Services
 
         public async Task<bool> CheckUserHasPost(Guid userId, Guid postId)
         {
-            var userPosts = await GetListPostsIdsByUserId(userId);
-            return userPosts.Any(x => x == postId);
+            return await _context.Posts.Where(x => x.AuthorID == userId).AnyAsync(x => x.Id == postId);
         }
 
-        public async Task<bool> CheckAttachExist(Guid postImageId)
+        public async Task<bool> CheckContentExist(Guid contentId)
         {
-            return await _context.Attaches.AnyAsync(x => x.Id == postImageId);
+            return await _context.PostContent.AnyAsync(x => x.Id == contentId);
+        }
+
+        public async Task<bool> CheckCommentExist(Guid commentId)
+        {
+            return await _context.Comments.AnyAsync(x => x.Id == commentId);
         }
 
         public void Dispose()

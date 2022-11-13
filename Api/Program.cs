@@ -1,5 +1,6 @@
 using Api;
 using Api.Configs;
+using Api.Middlewares;
 using Api.Services;
 using DAL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -55,16 +56,16 @@ internal class Program
             });
         });
 
-        builder.Services.AddDbContext<DAL.DataContext>(options =>
+        builder.Services.AddDbContext<DataContext>(options =>
         {
             options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSql"), sql => { });
         }, contextLifetime: ServiceLifetime.Scoped);
 
      
-
         builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
 
         builder.Services.AddScoped<UserService>();
+        builder.Services.AddScoped<AuthService>();
         builder.Services.AddTransient<AttachService>();
         builder.Services.AddScoped<PostService>();
 

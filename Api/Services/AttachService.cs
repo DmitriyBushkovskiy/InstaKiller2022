@@ -1,5 +1,5 @@
 ﻿using Api.Configs;
-using Api.Models;
+using Api.Models.Attach;
 using AutoMapper;
 using DAL;
 using Microsoft.AspNetCore.Mvc;
@@ -43,7 +43,6 @@ namespace Api.Services
             };
 
             var newPath = Path.Combine(tempPath, meta.TempId.ToString());
-
             var fileinfo = new FileInfo(newPath);
             if (fileinfo.Exists)
             {
@@ -51,21 +50,10 @@ namespace Api.Services
             }
             else
             {
-                if (fileinfo.Directory == null)
-                {
-                    throw new Exception("temp is null");
-                }
-                else
-                if (!fileinfo.Directory.Exists)
-                {
-                    fileinfo.Directory?.Create();
-                }
-
-                using (var stream = System.IO.File.Create(newPath))
+                using (var stream = File.Create(newPath))
                 {
                     await file.CopyToAsync(stream);
                 }
-
                 return meta;
             }
         }

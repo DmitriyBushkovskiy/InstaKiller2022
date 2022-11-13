@@ -1,23 +1,49 @@
-﻿using AutoMapper;
+﻿using Api.Controllers;
+using Api.Models.Attach;
+using Api.Models.Comment;
+using Api.Models.Post;
+using Api.Models.PostContent;
+using Api.Models.User;
+using AutoMapper;
 using Common;
+using DAL.Entities;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using System;
 
 namespace Api
 {
     public class MapperProfile: Profile
     {
-        public MapperProfile() {
-            CreateMap<Models.CreateUserModel, DAL.Entities.User>()
-                .ForMember(d=>d.Id, m=>m.MapFrom(s=>Guid.NewGuid()))
-                .ForMember(d=>d.PasswordHash, m=>m.MapFrom(s=>HashHelper.GetHash(s.Password)))
-                .ForMember(d=>d.BirthDate, m=>m.MapFrom(s=>s.BirthDate.UtcDateTime))
+        public MapperProfile()
+        {
+            CreateMap<CreateUserModel, User>()
+                .ForMember(d => d.Id, m => m.MapFrom(s => Guid.NewGuid()))
+                .ForMember(d => d.PasswordHash, m => m.MapFrom(s => HashHelper.GetHash(s.Password)))
+                .ForMember(d => d.BirthDate, m => m.MapFrom(s => s.BirthDate.UtcDateTime))
                 ;
-            CreateMap<DAL.Entities.User, Models.UserModel>();
-            CreateMap<DAL.Entities.User, Models.UserAvatarModel>();
-            CreateMap<DAL.Entities.Avatar, Models.AttachModel>();
-            CreateMap<DAL.Entities.PostContent, Models.AttachModel>();
-            CreateMap<DAL.Entities.PostContent, Models.PostContentModel>();
-            CreateMap<DAL.Entities.Comment, Models.CommentModel>();
-            CreateMap<DAL.Entities.Post, Models.PostModel>();
+
+
+            CreateMap<User, UserModel>();
+            CreateMap<User, UserAvatarModel>();
+            CreateMap<Avatar, AttachModel>();
+            CreateMap<PostContent, AttachModel>();
+
+
+            
+            //TODO: добавить перевод автора!!!
+
+
+
+            CreateMap<User, UserWithAvatarLinkModel>()
+                .ForMember(d => d.AvatarLink, m => m.MapFrom(s => LinkGenerateHelper.LinkAvatarGenerator ==null? null : LinkGenerateHelper.LinkAvatarGenerator(s)));
+            CreateMap<PostContent, PostContentModel>()
+                .ForMember(d => d.ContentLink, m => m.MapFrom(s => LinkGenerateHelper.LinkContentGenerator == null? null : LinkGenerateHelper.LinkContentGenerator(s)));
+            CreateMap<Comment, CommentModel>();
+            CreateMap<CreateComment, Comment>()
+                .ForMember(d => d.Created, m => m.MapFrom(s => DateTimeOffset.UtcNow));
+            CreateMap<Post, PostModel>(); 
+            //TODO: Metadata to attach
         }
     }
 }

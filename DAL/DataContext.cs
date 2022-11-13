@@ -41,6 +41,6 @@ namespace DAL
         public DbSet<Post> Posts => Set<Post>();
         public DbSet<PostContent> PostContent => Set<PostContent>();
         public DbSet<Comment> Comments => Set<Comment>();
-        //TODO: добавить сущности лайков: для комментов и постов
+        //TODO: добавить сущности лайков: для комментов, постов и контента
     }
 }

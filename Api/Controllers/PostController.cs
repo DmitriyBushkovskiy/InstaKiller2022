@@ -1,5 +1,11 @@
-﻿using Api.Models;
+﻿using Api.Models.Attach;
+using Api.Models.Comment;
+using Api.Models.Post;
+using Api.Models.PostContent;
 using Api.Services;
+using Common;
+using Common.Consts;
+using Common.Extentions;
 using DAL.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -17,69 +23,76 @@ namespace Api.Controllers
     public class PostController : ControllerBase
     {
         private readonly PostService _postService;
-        private readonly UserService _userService;
 
         public PostController (PostService postService, UserService userService)
         {
             _postService = postService;
-            _userService = userService;
+            LinkGenerateHelper.LinkAvatarGenerator = x => Url.Action(nameof(UserController.GetUserAvatar), "User", new //TODO: дублирование с пост контроллером
+            {
+                userId = x.Id,
+                download = false
+            });
+            LinkGenerateHelper.LinkContentGenerator = x => Url.Action(nameof(PostController.GetPostContent), "Post", new //TODO: дублирование с пост контроллером
+            {
+                postContentId = x.Id,
+                download = false
+            });
         }
 
         [HttpPost]
-        public async Task CreatePostWithUploadingFiles([FromForm] List<IFormFile> files, string postText)
+        public async Task CreatePost(CreatePostRequest request)
         {
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id")?.Value;
-            var userId = _postService.ParseStringToGuid(userIdString!);
-            await _postService.CreatePostWithUploadingFiles(files, userId, postText);
-        }
-
-        [HttpPost]
-        public async Task CreatePost(List<MetadataModel> models, string postText)
-        {
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id")?.Value;
-            var userId = _postService.ParseStringToGuid(userIdString!);
-            await _postService.CreatePost(models, userId, postText);
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.CreatePost(request, userId);
         }
 
         [HttpPost]
         public async Task AddContentToPost(List<MetadataModel> models, Guid postId)
         {
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id")?.Value;
-            var userId = _postService.ParseStringToGuid(userIdString!);
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
             await _postService.AddContentToPost(models, userId, postId);
         }
 
+        //TODO: добавить метод "изменить пост" (текст поста)
+
         [HttpPost]
-        public async Task CreateComment (string commentText, Guid postId)
+        public async Task CreateComment (CreateComment comment)
         {
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id")?.Value;
-            var userId = _postService.ParseStringToGuid(userIdString!);
-            await _postService.CreateComment(commentText, postId, userId);
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.CreateComment(comment, userId);
         }
 
         [HttpGet]
-        public async Task<CommentModel> GetCommentById(Guid commentId) => await _postService.GetCommentById(commentId);
+        public async Task<CommentModel> GetComment(Guid commentId) => await _postService.GetComment(commentId);
 
         [HttpGet]
-        public async Task<List<CommentModel>> GetCommentsByPostId(Guid postId) => await _postService.GetCommentsByPostId(postId);
+        public async Task<List<CommentModel>> GetComments(Guid postId) => await _postService.GetComments(postId);
 
         [HttpGet]
-        public async Task<List<PostContentModel>> GetContentByPostId(Guid postId) => await _postService.GetContentByPostId(postId);
-
-        [HttpGet]
-        public async Task<FileResult> GetAttachById(Guid attachId)
+        [AllowAnonymous]
+        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
         {
-            var attach = await _postService.GetAttachById(attachId);
-            return File(System.IO.File.ReadAllBytes(attach.FilePath), attach.MimeType);
+            var attach = await _postService.GetPostContent(postContentId);
+            var fs = new FileStream(attach.FilePath, FileMode.Open);
+            if (download)
+                return File(fs, attach.MimeType, attach.Name);
+            else
+                return File(fs, attach.MimeType);
         }
 
         [HttpGet]
-        public async Task<PostModel> GetPostByID(Guid postId) => await _postService.GetPostModelByID(postId);
-
+        public async Task<PostModel> GetPost(Guid postId) => await _postService.GetPost(postId);
 
         //TODO: добавить методы:
         // лайк поста
         // лайк коммента
+        // лайк контента
         // изменения поста
         // удаления поста
         // изменения коммента

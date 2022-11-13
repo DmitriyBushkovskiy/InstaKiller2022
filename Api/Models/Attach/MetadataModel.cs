@@ -1,4 +1,4 @@
-﻿namespace Api.Models
+﻿namespace Api.Models.Attach
 {
     public class MetadataModel
     {
