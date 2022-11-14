@@ -6,6 +6,7 @@ using Common;
 using DAL;
 using DAL.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using System.Numerics;
 
 namespace Api.Services
@@ -14,7 +15,6 @@ namespace Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
-
 
         public UserService(IMapper mapper, DataContext context)
         {
@@ -30,20 +30,16 @@ namespace Api.Services
 
         public async Task AddAvatarToUser(Guid userId, MetadataModel model, string filePath)
         {
-            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == userId);
+            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == userId); // TODO: написать покороче с использованием автермапа
             if (user != null)
             {
-                var avatar = new Avatar 
-                {   
-                    Author = user, 
-                    MimeType = model.MimeType, 
-                    FilePath = filePath, 
-                    Name = model.Name, 
-                    Size = model.Size , 
-                    User = user, 
-                    UserID = user.Id 
-                };
-                user.Avatar = avatar;
+                user.Avatar = _mapper.Map<MetadataModel, Avatar>(model, opts => opts.AfterMap((s, d) => 
+                {
+                    d.Author = user;
+                    d.FilePath = filePath;
+                    d.User = user;
+                    d.UserID = user.Id;
+                }));
                 await _context.SaveChangesAsync();
             }
         }
@@ -75,7 +71,7 @@ namespace Api.Services
 
         public async Task<IEnumerable<UserWithAvatarLinkModel>> GetUsers()
         {
-            var users = await _context.Users.Include(x => x.Avatar).AsNoTracking().ToListAsync();  //TODO: если переписать в одну строчку?  применить селект сразу к этой строке?
+            var users = await _context.Users.AsNoTracking().Include(x => x.Avatar).ToListAsync();
             return users.Select(x => _mapper.Map<UserWithAvatarLinkModel>(x));
         }
         public async Task<UserWithAvatarLinkModel> GetUser(Guid id)
@@ -87,9 +83,48 @@ namespace Api.Services
         private async Task<User> GetUserById(Guid id)
         {
             var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == id);
-            if (user == null)
+            if (user == default)
                 throw new Exception("user not found");
             return user;
+        }
+
+        public async Task ChangeUserData(ChangeUserDataModel data, Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null)
+                throw new Exception("user not found");
+            _mapper.Map<ChangeUserDataModel, User>(data, user);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<UserDataModel> GetUserData(Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null)
+                throw new Exception("user not found");
+            return _mapper.Map<UserDataModel>(user);
+        }
+
+        public async Task ChangeUsername(ChangeUsernameModel data, Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null)
+                throw new Exception("user not found");
+            if (await _context.Users.AnyAsync(x => x.Username == data.Username))
+                throw new Exception("username is already taken");
+            user.Username = data.Username;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ChangeEmail(ChangeEmailModel data, Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null)
+                throw new Exception("user not found");
+            if (await _context.Users.AnyAsync(x => x.Email == data.Email))
+                throw new Exception("username is already taken");
+            user.Username = data.Email;
+            await _context.SaveChangesAsync();
         }
     }
 }

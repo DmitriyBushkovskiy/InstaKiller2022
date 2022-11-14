@@ -24,22 +24,14 @@ namespace Api.Controllers
         public UserController(UserService userService)
         {
             _userService = userService;
-            LinkGenerateHelper.LinkAvatarGenerator = x => Url.Action(nameof(UserController.GetUserAvatar), "User", new //TODO: дублирование с пост контроллером
-            {
-                userId = x.Id,
-                download = false
-            });
-            LinkGenerateHelper.LinkContentGenerator = x => Url.Action(nameof(PostController.GetPostContent), "Post", new //TODO: дублирование с пост контроллером
-            {
-                postContentId = x.Id,
-                download = false
-            });
+            LinkGenerateHelper.LinkAvatarGenerator = x
+                => Url.ControllerAction<AttachController>(nameof(AttachController.GetUserAvatar), new { userId = x.Id });
         }
 
         [HttpPost]
         public async Task AddAvatarToUser(MetadataModel model)
         {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id); // TODO: написать покороче c использованием афтермапа
             if (userId != default)
             {
                 var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
@@ -51,33 +43,9 @@ namespace Api.Controllers
                     var destFi = new FileInfo(path);
                     if (destFi.Directory != null && !destFi.Directory.Exists)
                         destFi.Directory.Create();
-                    System.IO.File.Copy(tempFi.FullName, path, true);
+                    System.IO.File.Move(tempFi.FullName, path, true);
                     await _userService.AddAvatarToUser(userId, model, path);
                 }
-            }
-            else
-                throw new Exception("you are not authorized");
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
-        {
-            var attach = await _userService.GetUserAvatar(userId);
-            var fs = new FileStream(attach.FilePath, FileMode.Open);
-            if (download)
-                return File(fs, attach.MimeType, attach.Name);
-            else
-                return File(fs, attach.MimeType);
-        }
-
-        [HttpGet]
-        public async Task<FileStreamResult> GetCurrentUserAvatar(bool dowhload = false)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId != default)
-            {
-                return await GetUserAvatar(userId, dowhload);
             }
             else
                 throw new Exception("you are not authorized");
@@ -90,15 +58,78 @@ namespace Api.Controllers
         public async Task<UserWithAvatarLinkModel> GetCurrentUser()
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId != default)
+            if (userId == default)
             {
-                return await _userService.GetUser(userId);
+                throw new Exception("you are not authorized");
             }
             else
-                throw new Exception("you are not authorized");
+                return await _userService.GetUser(userId);
+        }
+
+        [HttpGet]
+        [Route("{userId}")]
+        public async Task<UserDataModel> GetUserData(Guid userId) => await _userService.GetUserData(userId);
+
+        [HttpGet]
+        public async Task<UserDataModel> GetCurrentUserData()
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+            {
+                throw new Exception("you are not autorized");
+            }
+            else
+                return await GetUserData(userId);
+        }
+
+        [HttpPut]
+        [Route("{userId}")]
+        public async Task ChangeUserData(ChangeUserDataModel data, Guid userId) => await _userService.ChangeUserData(data, userId);
+
+        [HttpPut]
+        public async Task ChangeCurrentUserData(ChangeUserDataModel data)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+            {
+                throw new Exception("you are not autorized");
+            }
+            else
+                await ChangeUserData(data, userId);
+        }
+
+        [HttpPut]
+        [Route("{userId}")]
+        public async Task ChangeUsername(ChangeUsernameModel data, Guid userId) => await _userService.ChangeUsername(data, userId);
+
+        [HttpPut]
+        public async Task ChangeCurrentUsername(ChangeUsernameModel data)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+            {
+                throw new Exception("you are not autorized");
+            }
+            else
+                await ChangeUsername(data, userId);
+        }
+
+        [HttpPut]
+        [Route("{userId}")]
+        public async Task ChangeEmail(ChangeEmailModel data, Guid userId) => await _userService.ChangeEmail(data, userId);
+
+        [HttpPut]
+        public async Task ChangeCurrentEmail(ChangeEmailModel data)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+            {
+                throw new Exception("you are not autorized");
+            }
+            else
+                await ChangeEmail(data, userId);
         }
         //TODO: добавить методы:
-        // изменения информации о пользователе
         // подтверждения почты 
         // изменения почты
         // подписки/отписки

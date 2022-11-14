@@ -40,7 +40,7 @@ namespace Api.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null)
-                throw new Exception("user not found");
+                throw new Exception("user not found");  
             var post = new Post()
             {
                 Id = Guid.NewGuid(),
@@ -56,31 +56,24 @@ namespace Api.Services
 
         public List<PostContent> CreatePostContent(List<MetadataModel> models, User user, Post post)
         {
-            var result = new List<PostContent>();
             var directory = Path.Combine(Directory.GetCurrentDirectory(), "attaches");
             var destFi = new FileInfo(directory);
             if (destFi.Directory != null && !destFi.Directory.Exists)
                 destFi.Directory.Create();
-            foreach (var model in models)
+
+            var result = models.Select(model =>
             {
-                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
-                if (!tempFi.Exists)
-                    continue;
-                var path = Path.Combine(directory, model.TempId.ToString());
-                File.Copy(tempFi.FullName, path, true);
-                var postContent = new PostContent() 
+                return _mapper.Map<MetadataModel, PostContent>(model, opts => opts.AfterMap((s, d) => 
                 { 
-                    Author = user,
-                    FilePath = path, 
-                    MimeType = model.MimeType, 
-                    Name = model.Name, 
-                    Size = model.Size, 
-                    PostID = post.Id,
-                    Post = post 
-                };
-                tempFi.Delete();
-                result.Add(postContent);
-            }
+                    d.PostID = post.Id;
+                    d.Post = post;
+                    d.Author = user;
+                    d.FilePath = Path.Combine(directory, model.TempId.ToString());
+                    var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
+                    if (tempFi.Exists)
+                        File.Move(tempFi.FullName, d.FilePath, true);
+                }));
+            }).ToList();
             return result;
         }
 
@@ -105,9 +98,9 @@ namespace Api.Services
             if (!await CheckPostExist(postId))
                 throw new Exception("post is not exist");
             var post = await _context.Posts.Include(x=>x.Author)
-                                                .ThenInclude(x=>x.Avatar)
-                                            .Include(x=>x.Comments)
-                                            .Include(x=>x.Content)
+                                               .ThenInclude(x=>x.Avatar)
+                                           .Include(x=>x.Comments)
+                                           .Include(x=>x.Content)
                                            .FirstAsync(x => x.Id == postId);
 
             var postModel = _mapper.Map<PostModel>(post);
@@ -151,8 +144,25 @@ namespace Api.Services
             return result;
         }
 
-        //TODO: добавить метод изменения коммента
+        public async Task<List<PostModel>> GetPosts(int skip, int take)
+        {
+            var  Ids = _context.Posts
+                .AsNoTracking()
+                .OrderByDescending(x => x.Created)
+                .Skip(skip)
+                .Take(take)
+                .Select(x => x.Id) 
+                .ToList();
+            var result = new List<PostModel>();
+            foreach (var id in Ids)
+            {
+                result.Add(await GetPost(id));
+            }
+            return result;
+        }
 
+        //TODO: добавить метод изменения коммента
+        //TODO: добавить метод изменения текста поста
         public async Task<bool> CheckPostExist(Guid postId)
         {
             return await _context.Posts.AnyAsync(x => x.Id == postId);

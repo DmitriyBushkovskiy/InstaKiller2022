@@ -27,16 +27,10 @@ namespace Api.Controllers
         public PostController (PostService postService, UserService userService)
         {
             _postService = postService;
-            LinkGenerateHelper.LinkAvatarGenerator = x => Url.Action(nameof(UserController.GetUserAvatar), "User", new //TODO: дублирование с пост контроллером
-            {
-                userId = x.Id,
-                download = false
-            });
-            LinkGenerateHelper.LinkContentGenerator = x => Url.Action(nameof(PostController.GetPostContent), "Post", new //TODO: дублирование с пост контроллером
-            {
-                postContentId = x.Id,
-                download = false
-            });
+            LinkGenerateHelper.LinkAvatarGenerator = x
+                => Url.ControllerAction<AttachController>(nameof(AttachController.GetUserAvatar), new { userId = x.Id });
+            LinkGenerateHelper.LinkContentGenerator = x
+                => Url.ControllerAction<AttachController>(nameof(AttachController.GetPostContent), new { postContentId = x.Id });
         }
 
         [HttpPost]
@@ -69,25 +63,19 @@ namespace Api.Controllers
         }
 
         [HttpGet]
+        [Route("{commentId}")]
         public async Task<CommentModel> GetComment(Guid commentId) => await _postService.GetComment(commentId);
 
         [HttpGet]
+        [Route("{postId}")]
         public async Task<List<CommentModel>> GetComments(Guid postId) => await _postService.GetComments(postId);
 
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
-        {
-            var attach = await _postService.GetPostContent(postContentId);
-            var fs = new FileStream(attach.FilePath, FileMode.Open);
-            if (download)
-                return File(fs, attach.MimeType, attach.Name);
-            else
-                return File(fs, attach.MimeType);
-        }
+        [Route("{postId}")]
+        public async Task<PostModel> GetPost(Guid postId) => await _postService.GetPost(postId);
 
         [HttpGet]
-        public async Task<PostModel> GetPost(Guid postId) => await _postService.GetPost(postId);
+        public async Task<List<PostModel>> GetPosts(int skip, int take) => await _postService.GetPosts(skip, take);
 
         //TODO: добавить методы:
         // лайк поста

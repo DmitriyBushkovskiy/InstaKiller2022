@@ -5,7 +5,6 @@ namespace Common
 {
     public static class Utils
     {
-        private static Func<User, string?>? _linkAvatarGenerator;
         public static T? Convert<T>(this string input)
         {
             try
@@ -22,19 +21,5 @@ namespace Common
                 return default;
             }
         }
-        /// <summary>
-        /// ////////////////////////////////////////////////
-        /// </summary>
-        /// <param name="linkAvatarGenerator"></param>
-        public static void SetAv(Func<User, string?> linkAvatarGenerator)
-        {
-            _linkAvatarGenerator = linkAvatarGenerator;
-        }
-
-        public static string get(User user)
-        {
-            return _linkAvatarGenerator(user);
-        }
-        /////////////////////////////////////////////////////////////////////
     }
 }

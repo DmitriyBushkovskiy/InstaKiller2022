@@ -3,6 +3,7 @@ using Api.Configs;
 using Api.Middlewares;
 using Api.Services;
 using DAL;
+using DAL.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
