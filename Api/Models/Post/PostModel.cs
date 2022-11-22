@@ -11,6 +11,7 @@ namespace Api.Models.Post
         public string? Description { get; set; } = null!;
         public DateTimeOffset Created { get; set; }
         public bool Changed { get; set; }
+        public int Likes { get; set; }
         public UserWithAvatarLinkModel Author { get; set; } = null!;
         public List<PostContentModel> PostContent { get; set; } = null!;
         public List<CommentModel>? Comments { get; set; }

@@ -1,5 +1,5 @@
-using Api;
 using Api.Configs;
+using Api.Mapper;
 using Api.Middlewares;
 using Api.Services;
 using DAL;
@@ -55,6 +55,9 @@ internal class Program
                     new List<string>()
                 }
             });
+
+            c.SwaggerDoc("Auth", new OpenApiInfo { Title = "Auth" });
+            c.SwaggerDoc("Api", new OpenApiInfo { Title = "Api" });
         });
 
         builder.Services.AddDbContext<DataContext>(options =>
@@ -69,6 +72,10 @@ internal class Program
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddTransient<AttachService>();
         builder.Services.AddScoped<PostService>();
+        builder.Services.AddScoped<LikeService>();
+        builder.Services.AddScoped<RelationService>();
+        builder.Services.AddScoped<LinkGeneratorService>();
+        builder.Services.AddScoped<MessageService>();
 
         builder.Services.AddAuthentication(o =>
         {
@@ -114,7 +121,10 @@ internal class Program
         //if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwaggerUI(c => {
+                c.SwaggerEndpoint("Api/swagger.json", "Api");
+                c.SwaggerEndpoint("Auth/swagger.json", "Auth");
+            });
         }
 
         app.UseHttpsRedirection();

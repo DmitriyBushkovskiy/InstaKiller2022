@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Mail;
 using System.Security.Claims;
 
 namespace Api.Services
@@ -28,9 +29,7 @@ namespace Api.Services
 
         public async Task<TokenModel> GetToken(string login, string password)
         {
-            //TODO: проверка подтверждена ли почта
-            //TODO: не заблокирован ли аккаунт подтверждена ли почта
-            //TODO: использование юзернейма или почты к качестве логина
+            //TODO: сделать проверку подтверждена ли почта
             var user = await GetUserByCredention(login, password);
             var session = await _context.UserSessions.AddAsync(new DAL.Entities.UserSession
             {
@@ -61,8 +60,7 @@ namespace Api.Services
             {
                 throw new SecurityTokenException("invalid token");
             }
-
-            if (principal.Claims.FirstOrDefault(x => x.Type == "refreshToken")?.Value is String refreshIdString // TODO: переписать с клаймнеймс
+            if (principal.Claims.FirstOrDefault(x => x.Type == "refreshToken")?.Value is String refreshIdString
                 && Guid.TryParse(refreshIdString, out var refreshId)
                 )
             {
@@ -94,13 +92,27 @@ namespace Api.Services
 
         private async Task<User> GetUserByCredention(string login, string pass)
         {
-            //TODO: юзернейм и почта в качестве логина
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email.ToLower() == login.ToLower());
-            if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(x => (IsEmail(login) ? x.Email.ToLower() : x.Username.ToLower()) == login.ToLower());
+            if (user == default)
                 throw new Exception("user not found");
+            if (!user.IsActive)
+                throw new Exception("user is not active");
             if (!HashHelper.Verify(pass, user.PasswordHash))
                 throw new Exception("password is incorrect");
             return user;
+        }
+
+        public bool IsEmail(string lodin)
+        {
+            try
+            {
+                MailAddress email = new MailAddress(lodin);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         private TokenModel GenerateTokens(UserSession session)

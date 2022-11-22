@@ -2,6 +2,8 @@
 using Api.Models.Comment;
 using Api.Models.Post;
 using Api.Models.PostContent;
+using Api.Models.Relation;
+using Api.Models.User;
 using Api.Services;
 using Common;
 using Common.Consts;
@@ -19,20 +21,25 @@ namespace Api.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Api")]
     [Authorize]
+
     public class PostController : ControllerBase
     {
         private readonly PostService _postService;
+        private readonly LikeService _likeService;
 
-        public PostController (PostService postService, UserService userService)
+        public PostController(PostService postService, LikeService likeService, LinkGeneratorService linkGeneratorService)
         {
             _postService = postService;
-            LinkGenerateHelper.LinkAvatarGenerator = x
+            _likeService = likeService;
+            linkGeneratorService.LinkAvatarGenerator = x
                 => Url.ControllerAction<AttachController>(nameof(AttachController.GetUserAvatar), new { userId = x.Id });
-            LinkGenerateHelper.LinkContentGenerator = x
+            linkGeneratorService.LinkContentGenerator = x
                 => Url.ControllerAction<AttachController>(nameof(AttachController.GetPostContent), new { postContentId = x.Id });
         }
 
+        // Posts
         [HttpPost]
         public async Task CreatePost(CreatePostRequest request)
         {
@@ -42,19 +49,67 @@ namespace Api.Controllers
             await _postService.CreatePost(request, userId);
         }
 
-        [HttpPost]
-        public async Task AddContentToPost(List<MetadataModel> models, Guid postId)
+        [HttpGet]
+        [Route("{postId}")]
+        public async Task<PostModel> GetPost(Guid postId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new Exception("you are not authorized");
-            await _postService.AddContentToPost(models, userId, postId);
+            return await _postService.GetPost(userId, postId);
         }
 
-        //TODO: добавить метод "изменить пост" (текст поста)
+        [HttpGet]
+        public async Task<List<PostModel>> GetPostsByUserId(Guid targetUserId, int skip, int take)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _postService.GetPostsByUserId(userId, targetUserId, skip, take);
+        }
+
+        [HttpGet]
+        public async Task<List<PostModel>> GetPostFeed(int skip, int take)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _postService.GetPostFeed(userId, skip, take);
+        } 
+
+        [HttpPut]
+        public async Task ChangePostDescription(ChangePostDescriptionModel model)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.ChangePostDescription(model, userId);
+        }
+
+        [HttpPut]
+        [Route("{postId}")]
+        public async Task<bool> LikePost(Guid postId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _likeService.LikePost(postId, userId);
+        }
+
+        [HttpDelete]
+        [Route("{postId}")]
+        public async Task DeletePost(Guid postId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.DeletePost(postId, userId);
+        }
+
+        // Comments
 
         [HttpPost]
-        public async Task CreateComment (CreateComment comment)
+        public async Task CreateComment(CreateComment comment)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -64,27 +119,73 @@ namespace Api.Controllers
 
         [HttpGet]
         [Route("{commentId}")]
-        public async Task<CommentModel> GetComment(Guid commentId) => await _postService.GetComment(commentId);
+        public async Task<CommentModel> GetComment(Guid commentId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _postService.GetComment(userId, commentId);
+        }
 
         [HttpGet]
         [Route("{postId}")]
-        public async Task<List<CommentModel>> GetComments(Guid postId) => await _postService.GetComments(postId);
+        public async Task<List<CommentModel>> GetComments(Guid postId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _postService.GetComments(userId, postId);
+        }
 
-        [HttpGet]
-        [Route("{postId}")]
-        public async Task<PostModel> GetPost(Guid postId) => await _postService.GetPost(postId);
+        [HttpPut]
+        public async Task ChangeComment(ChangeCommentModel newComment)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.ChangeComment(newComment, userId);
+        }
 
-        [HttpGet]
-        public async Task<List<PostModel>> GetPosts(int skip, int take) => await _postService.GetPosts(skip, take);
+        [HttpPut]
+        [Route("{commentId}")]
+        public async Task<bool> LikeComment(Guid commentId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _likeService.LikeComment(commentId, userId);
+        }
 
-        //TODO: добавить методы:
-        // лайк поста
-        // лайк коммента
-        // лайк контента
-        // изменения поста
-        // удаления поста
-        // изменения коммента
-        // удаления коммента
-        // получение постов пользователя
+        [HttpDelete]
+        [Route("{commentId}")]
+        public async Task DeleteComment(Guid commentId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.DeleteComment(commentId, userId);
+        }
+
+        // Content
+
+        [HttpPut]
+        [Route("{contentId}")]
+        public async Task<bool> LikeContent(Guid contentId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return await _likeService.LikeContent(contentId, userId);
+        }
+
+        [HttpDelete]
+        [Route("{contentId}")]
+        public async Task DeletePostContent(Guid contentId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            await _postService.DeletePostContent(contentId, userId);
+        }
     }
 }

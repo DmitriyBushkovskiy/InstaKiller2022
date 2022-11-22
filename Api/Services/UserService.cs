@@ -1,4 +1,5 @@
 ﻿using Api.Models.Attach;
+using Api.Models.Post;
 using Api.Models.User;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -22,43 +23,37 @@ namespace Api.Services
             _context = context;
         }
 
-        public async Task<bool> CheckUserExist(string email)
+        public async Task<bool> CheckUserExist(string email, string username)
         {
-            //TODO: проверка по емайлу и юзернейму
-            return await _context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower());
+            return await _context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower() 
+                                                   || x.Username.ToLower() == username.ToLower());
         }
 
-        public async Task AddAvatarToUser(Guid userId, MetadataModel model, string filePath)
+        public async Task AddAvatarToUser(Guid userId, MetadataModel model)
         {
-            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == userId); // TODO: написать покороче с использованием автермапа
-            if (user != null)
-            {
-                user.Avatar = _mapper.Map<MetadataModel, Avatar>(model, opts => opts.AfterMap((s, d) => 
-                {
-                    d.Author = user;
-                    d.FilePath = filePath;
-                    d.User = user;
-                    d.UserID = user.Id;
-                }));
-                await _context.SaveChangesAsync();
-            }
+            var user = _context.Users.Include(x => x.Avatar)
+                                     .FirstOrDefault(x => x.Id == userId && x.IsActive);
+            if (user == default)
+                throw new Exception("user not found");
+            var avatar = _mapper.Map<Avatar>(model);
+            avatar.UserID = avatar.AuthorId = userId;
+            user.Avatar = avatar;
+            await _context.SaveChangesAsync();
         }
 
-        public async Task<AttachModel> GetUserAvatar(Guid userId)
+        public async Task<AttachModel> GetUserAvatar(Guid userId) 
         {
             var user = await GetUserById(userId);
             return _mapper.Map<AttachModel>(user.Avatar);
         }
 
-        public async Task Delete(Guid id)
+        public async Task DeleteUser(Guid userId)
         {
-            var dbUser = await GetUserById(id);
-            if (dbUser != null)
-            {
-                //TODO: неполное удаление юзера
-                _context.Users.Remove(dbUser);
-                await _context.SaveChangesAsync();
-            }
+            var user = await GetUserById(userId);
+            if (user == default)
+                throw new Exception("user not found");
+            user.IsActive = false;
+            await _context.SaveChangesAsync();
         }
 
         public async Task<Guid> CreateUser(CreateUserModel model)
@@ -71,18 +66,24 @@ namespace Api.Services
 
         public async Task<IEnumerable<UserWithAvatarLinkModel>> GetUsers()
         {
-            var users = await _context.Users.AsNoTracking().Include(x => x.Avatar).ToListAsync();
-            return users.Select(x => _mapper.Map<UserWithAvatarLinkModel>(x));
+            return await _context.Users.AsNoTracking()
+                                        .Where(x => x.IsActive)
+                                        .Include(x => x.Avatar)
+                                        .OrderByDescending(x => x.Registered)
+                                        .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x))
+                                        .ToListAsync();
         }
+
         public async Task<UserWithAvatarLinkModel> GetUser(Guid id)
         {
             var user = await GetUserById(id);
             return _mapper.Map<UserWithAvatarLinkModel>(user);
         }
 
-        private async Task<User> GetUserById(Guid id)
+        private async Task<User> GetUserById(Guid userId)
         {
-            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == id);
+            var user = await _context.Users.Include(x => x.Avatar)
+                                           .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
                 throw new Exception("user not found");
             return user;
@@ -90,40 +91,49 @@ namespace Api.Services
 
         public async Task ChangeUserData(ChangeUserDataModel data, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+            if (user == default)
                 throw new Exception("user not found");
             _mapper.Map<ChangeUserDataModel, User>(data, user);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<UserDataModel> GetUserData(Guid userId)
+        public async Task<UserDataModel> GetUserData(Guid userId, Guid targetUserId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null)
+            if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new Exception("user not found");
-            return _mapper.Map<UserDataModel>(user);
+            var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
+                                                 .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
+            if (targetUser == default)
+                throw new Exception("target user not found");
+            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
+            || targetUser.Followers.FirstOrDefault()?.State == true
+            || userId == targetUserId)
+            {
+                return _mapper.Map<UserDataModel>(targetUser);
+            }
+            throw new Exception("you don't have access");
         }
 
         public async Task ChangeUsername(ChangeUsernameModel data, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+            if (user == default)
                 throw new Exception("user not found");
-            if (await _context.Users.AnyAsync(x => x.Username == data.Username))
-                throw new Exception("username is already taken");
+            if (await _context.Users.AnyAsync(x => x.Username.ToLower() == data.Username.ToLower()))
+                throw new Exception("username is already exist");
             user.Username = data.Username;
             await _context.SaveChangesAsync();
         }
 
         public async Task ChangeEmail(ChangeEmailModel data, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+            if (user == default)
                 throw new Exception("user not found");
-            if (await _context.Users.AnyAsync(x => x.Email == data.Email))
-                throw new Exception("username is already taken");
-            user.Username = data.Email;
+            if (await _context.Users.AnyAsync(x => x.Email.ToLower() == data.Email.ToLower()))
+                throw new Exception("email is already exist");
+            user.Email = data.Email;
             await _context.SaveChangesAsync();
         }
     }

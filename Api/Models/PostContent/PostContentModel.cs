@@ -6,5 +6,6 @@
         public string Name { get; set; } = null!;
         public string MimeType { get; set; } = null!;
         public string? ContentLink { get; set; }
+        public int Likes { get; set; }
     }
 }

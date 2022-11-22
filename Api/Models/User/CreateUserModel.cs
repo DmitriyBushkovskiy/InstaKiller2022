@@ -1,20 +1,29 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Api.Utils;
+using System.ComponentModel.DataAnnotations;
 
 namespace Api.Models.User
 {
     public class CreateUserModel
     {
-        [Required] //TODO: добавить валидацию (продумать какие символы можно использовать)
+        [Required]
+        [StringLength(30, MinimumLength = 1, ErrorMessage = "Длина username должна быть не менее 1 и не более 30 символов")]
+        [RegularExpression(@"^[a-zA-Z0-9_.]+$", ErrorMessage = "Допускается использовать только латинские буквы, цифры, нижние подчеркивания и точки")]
         public string Username { get; set; }
-        [Required] //TODO: добавить валидацию
+
+        [Required]
+        [EmailAddress]
         public string Email { get; set; }
-        [Required] //TODO: добавить валидацию (продумать какие символы можно использовать, длина пароля, верхний и нижний регистры)
+
+        [Required]
         public string Password { get; set; }
+
         [Required]
         [Compare(nameof(Password))]
         public string RetryPassword { get; set; }
+
         [Required]
-        public DateTimeOffset BirthDate { get; set; } //TODO: добавить валидацию (ограничение на минимальный возраст)
+        [MinAge]
+        public DateTimeOffset BirthDate { get; set; }
 
         public CreateUserModel(string username, string email, string password, string retryPassword, DateTimeOffset birthDate)
         {

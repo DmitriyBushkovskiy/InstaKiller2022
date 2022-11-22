@@ -1,7 +1,11 @@
-﻿namespace Api.Models.User
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Api.Models.User
 {
     public class ChangeEmailModel
     {
-        public string Email = null!; //TODO: validation
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = null!;
     }
 }
