@@ -10,6 +10,7 @@ namespace Api.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Auth")]
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
@@ -32,9 +33,8 @@ namespace Api.Controllers
         [HttpPost]
         public async Task RegisterUser(CreateUserModel model)
         {
-            if (await _userService.CheckUserExist(model.Email))
+            if (await _userService.CheckUserExist(model.Email, model.Username))
                 throw new Exception("user is exist");
-            //TODO проверка что email и username уникальны 
             await _userService.CreateUser(model);
         }
     }

@@ -13,32 +13,18 @@ namespace DAL.Entities
         public string Email { get; set; } = "empty";
         public string PasswordHash { get; set; } = "empty"; 
         public DateTimeOffset BirthDate { get; set; }
-        public virtual Avatar? Avatar { get; set; }
-        public virtual ICollection<UserSession>? Sessions { get; set; }
         public DateTimeOffset Registered { get; set; }
-
-        // new fields
         public string? FullName { get; set; }
         public string? Bio { get; set; }
         public string? Phone { get; set; }
-        public bool IsPhineConfirmed { get; set; }
+        public bool IsPhoneConfirmed { get; set; }
         public bool IsEmailConfirmed { get; set; }
         public bool PrivateAccount { get; set; }
-        public bool isActive { get; set; }
-        // ICollection<Guid> followers
-        // ICollection<Guid> following
-        // ICollection<Guid> following
-
-        //TODO: добавить дополнительные поля:
-        // string Fullname
-        // string Bio
-        // string Phone
-        // bool IsPhineConfirmed
-        // bool IsEmailConfirmed
-        // bool PrivateAccount
-        // ICollection<Guid> followers
-        // ICollection<Guid> following
-        // ICollection<Guid> following
-        // bool isActive
+        public bool IsActive { get; set; } = true;
+        public virtual Avatar? Avatar { get; set; }
+        public virtual ICollection<UserSession> Sessions { get; set; } = null!;
+        public virtual ICollection<Post> Posts { get; set; } = null!;
+        public virtual ICollection<Relation> Followers { get; set; } = null!;
+        public virtual ICollection<Relation> Followed { get; set; } = null!;
     }
 }

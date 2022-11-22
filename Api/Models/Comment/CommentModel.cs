@@ -1,4 +1,6 @@
-﻿namespace Api.Models.Comment
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Api.Models.Comment
 {
     public class CommentModel
     {
@@ -8,5 +10,6 @@
         public bool Changed { get; set; }
         public Guid UserId { get; set; }
         public string Username { get; set; } = null!;
+        public int Likes { get; set; }
     }
 }

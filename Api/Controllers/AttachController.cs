@@ -10,6 +10,8 @@ namespace Api.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Api")]
+    [Authorize]
     public class AttachController : ControllerBase
     {
         private readonly AttachService _attachService;
@@ -29,16 +31,21 @@ namespace Api.Controllers
 
         [HttpGet]
         [Route("{postContentId}")]
-        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false) 
-            => RenderAttach(await _postService.GetPostContent(postContentId), download);
+        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new Exception("you are not authorized");
+            return RenderAttach(await _postService.GetPostContent(userId, postContentId), download);
+        }
 
         [HttpGet]
         [Route("{userId}")]
-        public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false) 
+        public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
             => RenderAttach(await _userService.GetUserAvatar(userId), download);
 
         [HttpGet]
-        public async Task<FileStreamResult> GetCurrentUserAvatar(bool download = false) 
+        public async Task<FileStreamResult> GetCurrentUserAvatar(bool download = false)
             => RenderAttach(await _userService.GetUserAvatar(User.GetClaimValue<Guid>(ClaimNames.Id)), download);
 
         private FileStreamResult RenderAttach(AttachModel attach, bool download)

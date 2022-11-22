@@ -1,8 +1,12 @@
-﻿namespace Api.Models.Comment
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Api.Models.Comment
 {
     public class CreateComment
     {
-        public string CommentText { get; set; } = null!; //TODO: валидация (не пустая строка и не более?? символов)
+        [Required]
+        [StringLength(1000, MinimumLength = 1, ErrorMessage = "Длина комментария должна быть от 1 до 1000 символов")]
+        public string CommentText { get; set; } = null!;
         public Guid PostId { get; set; }
     }
 }

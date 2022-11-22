@@ -16,10 +16,8 @@ namespace DAL.Entities
         public Guid AuthorID { get; set; }
         public virtual User Author { get; set; } = null!;
         public virtual ICollection <PostContent> Content { get; set; } = null!;
-        public virtual ICollection <Comment>? Comments { get; set; }
-
-        //TODO: isActive
-        //TODO: добавить дополнительные поля:
-        // int Likes
+        public virtual ICollection <Comment> Comments { get; set; } = null!;
+        public virtual ICollection<PostLike> Likes { get; set; }= null!;
+        public bool IsActive { get; set; } = true;
     }
 }
