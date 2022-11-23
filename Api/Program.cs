@@ -75,7 +75,7 @@ internal class Program
         builder.Services.AddScoped<LikeService>();
         builder.Services.AddScoped<RelationService>();
         builder.Services.AddScoped<LinkGeneratorService>();
-        builder.Services.AddScoped<MessageService>();
+        builder.Services.AddScoped<ChatService>();
 
         builder.Services.AddAuthentication(o =>
         {
@@ -132,6 +132,7 @@ internal class Program
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseTokenValidator();
+        app.UseGlobalErrorWrapper();
         app.MapControllers();
 
         app.Run();

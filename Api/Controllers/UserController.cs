@@ -1,4 +1,5 @@
-﻿using Api.Models.Attach;
+﻿using Api.Exceptions;
+using Api.Models.Attach;
 using Api.Models.User;
 using Api.Services;
 using AutoMapper;
@@ -34,7 +35,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _userService.AddAvatarToUser(userId, model);
         }
 
@@ -46,7 +47,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             else
                 return await _userService.GetUser(userId);
         }
@@ -57,7 +58,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _userService.GetUserData(userId, targetUserId);
         }
 
@@ -66,7 +67,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not autorized");
+                throw new UserNotAuthorizedException();
             return await _userService.GetUserData(userId, userId);
         }
 
@@ -75,7 +76,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not autorized");
+                throw new UserNotAuthorizedException();
             await _userService.ChangeUserData(data, userId);
         }
 
@@ -84,7 +85,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not autorized");
+                throw new UserNotAuthorizedException();
             await _userService.ChangeUsername(data, userId);
         }
 
@@ -93,7 +94,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not autorized");
+                throw new UserNotAuthorizedException();
             await _userService.ChangeEmail(data, userId);
         }
 
@@ -102,7 +103,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not autorized");
+                throw new UserNotAuthorizedException();
             await _userService.DeleteUser(userId);
         }
 

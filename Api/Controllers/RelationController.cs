@@ -1,4 +1,5 @@
-﻿using Api.Models.Relation;
+﻿using Api.Exceptions;
+using Api.Models.Relation;
 using Api.Services;
 using Common.Consts;
 using Common.Extentions;
@@ -34,7 +35,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _relationService.GetFollowed(userId, targetUserId);
         }
 
@@ -43,7 +44,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _relationService.GetFollowersRequests(userId);
         }
 
@@ -52,7 +53,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _relationService.GetBanned(userId);
         }
 
@@ -62,7 +63,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _relationService.GetFollowers(userId, targetUserId);
         }
         
@@ -72,7 +73,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _relationService.Follow(userId, targetUserId);
         }
 
@@ -82,7 +83,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _relationService.Ban(userId, targetUserId);
         }
 
@@ -92,7 +93,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _relationService.Unban(userId, targetUserId);
         }
     }

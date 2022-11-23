@@ -1,5 +1,6 @@
 ﻿using Api.Configs;
 using Api.Controllers;
+using Api.Exceptions;
 using Api.Models.Relation;
 using AutoMapper;
 using DAL;
@@ -33,11 +34,11 @@ namespace Api.Services
         public async Task<List<FollowedModel>> GetFollowed(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
                                      .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
 
             if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
             || targetUser.Followers.FirstOrDefault()?.State == true
@@ -52,14 +53,14 @@ namespace Api.Services
                                      .ToListAsync();
                 return result;
             }
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task<List<FollowerModel>> GetFollowersRequests(Guid userId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             if (!user.PrivateAccount)
                 return new List<FollowerModel>();
             var result = await _context.Relations.Include(x => x.Follower)
@@ -73,7 +74,7 @@ namespace Api.Services
         public async Task<List<FollowerModel>> GetBanned(Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var result = await _context.Relations.Include(x => x.Follower)
                                                 .Include(x => x.Follower.Avatar)
                                                 .Where(x => x.FollowedId == userId && x.State == false && x.Follower.IsActive)
@@ -85,11 +86,11 @@ namespace Api.Services
         public async Task<List<FollowerModel>> GetFollowers(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
                                      .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
             if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
             || targetUser.Followers.FirstOrDefault()?.State == true
             || userId == targetUserId)
@@ -101,18 +102,18 @@ namespace Api.Services
                                                     .ToListAsync();
                 return result;
             }
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task<bool?> Follow(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
 
             var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
             var relation = targetUser.Followers.FirstOrDefault();
             if (relation == null)
             {
@@ -138,11 +139,11 @@ namespace Api.Services
         public async Task Ban(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var user = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == targetUserId))
                                      .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
             var relation = user.Followers.FirstOrDefault();
 
             if (relation == null)
@@ -158,11 +159,11 @@ namespace Api.Services
         public async Task Unban(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var user = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == targetUserId))
                                      .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
             var relation = user.Followers.FirstOrDefault();
             if (relation == null || relation.State != false)
                 throw new Exception("user not banned");

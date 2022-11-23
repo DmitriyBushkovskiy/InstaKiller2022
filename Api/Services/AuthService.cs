@@ -1,4 +1,5 @@
 ﻿using Api.Configs;
+using Api.Exceptions;
 using Api.Models.Token;
 using AutoMapper;
 using Common;
@@ -94,7 +95,7 @@ namespace Api.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => (IsEmail(login) ? x.Email.ToLower() : x.Username.ToLower()) == login.ToLower());
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             if (!user.IsActive)
                 throw new Exception("user is not active");
             if (!HashHelper.Verify(pass, user.PasswordHash))

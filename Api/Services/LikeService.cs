@@ -1,4 +1,5 @@
 ﻿using Api.Configs;
+using Api.Exceptions;
 using Api.Models.Comment;
 using AutoMapper;
 using DAL;
@@ -26,14 +27,14 @@ namespace Api.Services
         public async Task<bool> LikePost(Guid postId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var post = await _context.Posts.AsNoTracking()
                                             .Include(x => x.Author)
                                                .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
                                             .Include(x => x.Likes)
                                             .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
@@ -57,13 +58,13 @@ namespace Api.Services
                     return false;
                 }
             }
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task<bool> LikeComment(Guid commentId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var comment = await _context.Comments.AsNoTracking()
                                                     .Include(x => x.Likes)
                                                     .Include(x => x.Post)
@@ -71,7 +72,7 @@ namespace Api.Services
                                                             .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
                                                     .FirstOrDefaultAsync(x => x.Id == commentId && x.IsActive);
             if (comment == null)
-                throw new Exception("comment not found");
+                throw new CommentNotFoundException();
             if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
                 || comment.Post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == comment.UserId)
@@ -96,13 +97,13 @@ namespace Api.Services
                 }
             }
             else
-                throw new Exception("you don't have access");
+                throw new UserDontHaveAccessException();
         }
 
         public async Task<bool> LikeContent(Guid contentId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
 
             var content = await _context.PostContent.Include(x => x.Likes)
                                                      .Include(x => x.Post)
@@ -110,7 +111,7 @@ namespace Api.Services
                                                             .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
                                                     .FirstOrDefaultAsync(x => x.Id == contentId && x.IsActive == true);
             if (content == null)
-                throw new Exception("content not found");
+                throw new ContentNotFoundException();
             if (!content.Post.Author.PrivateAccount && content.Post.Author.Followers.FirstOrDefault()?.State != false
                 || content.Post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == content.AuthorId)
@@ -135,7 +136,7 @@ namespace Api.Services
                 }
             }
             else
-                throw new Exception("you don't have access");
+                throw new UserDontHaveAccessException();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Api.Models.Attach;
+﻿using Api.Exceptions;
+using Api.Models.Attach;
 using Api.Models.Comment;
 using Api.Models.Post;
 using Api.Models.PostContent;
@@ -45,7 +46,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.CreatePost(request, userId);
         }
 
@@ -55,25 +56,25 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _postService.GetPost(userId, postId);
         }
 
         [HttpGet]
-        public async Task<List<PostModel>> GetPostsByUserId(Guid targetUserId, int skip, int take)
+        public async Task<List<PostModel>> GetPostsByUserId(Guid targetUserId, int skip = 0, int take = 10)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _postService.GetPostsByUserId(userId, targetUserId, skip, take);
         }
 
         [HttpGet]
-        public async Task<List<PostModel>> GetPostFeed(int skip, int take)
+        public async Task<List<PostModel>> GetPostFeed(int skip = 0, int take = 10)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _postService.GetPostFeed(userId, skip, take);
         } 
 
@@ -82,7 +83,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.ChangePostDescription(model, userId);
         }
 
@@ -92,7 +93,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _likeService.LikePost(postId, userId);
         }
 
@@ -102,7 +103,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.DeletePost(postId, userId);
         }
 
@@ -113,7 +114,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.CreateComment(comment, userId);
         }
 
@@ -123,7 +124,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _postService.GetComment(userId, commentId);
         }
 
@@ -133,7 +134,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _postService.GetComments(userId, postId);
         }
 
@@ -142,7 +143,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.ChangeComment(newComment, userId);
         }
 
@@ -152,7 +153,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _likeService.LikeComment(commentId, userId);
         }
 
@@ -162,7 +163,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.DeleteComment(commentId, userId);
         }
 
@@ -174,7 +175,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return await _likeService.LikeContent(contentId, userId);
         }
 
@@ -184,7 +185,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             await _postService.DeletePostContent(contentId, userId);
         }
     }

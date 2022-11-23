@@ -33,15 +33,18 @@ namespace DAL
                .Entity<User>()
                .HasMany(x => x.Followers)
                .WithOne(y => y.Followed)
-               .HasForeignKey(f => f.FollowedId)
-               ;
+               .HasForeignKey(f => f.FollowedId);
 
             modelBuilder
                .Entity<User>()
                .HasMany(x => x.Followed)
                .WithOne(y => y.Follower)
-               .HasForeignKey(f => f.FollowerId)
-                ;
+               .HasForeignKey(f => f.FollowerId);
+
+            modelBuilder
+                .Entity<ChatParticipant>()
+                .HasIndex(f => new { f.ChatId, f.UserId })
+                .IsUnique();
 
             modelBuilder.Entity<Avatar>().ToTable(nameof(Avatars));
             modelBuilder.Entity<Post>().ToTable(nameof(Posts));
@@ -52,6 +55,8 @@ namespace DAL
             modelBuilder.Entity<PostLike>().ToTable(nameof(PostLikes));
             modelBuilder.Entity<ContentLike>().ToTable(nameof(ContentLikes));
             modelBuilder.Entity<Message>().ToTable(nameof(Messages));
+            modelBuilder.Entity<Chat>().ToTable(nameof(Chats));
+            modelBuilder.Entity<ChatParticipant>().ToTable(nameof(ChatParticipants));
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -70,5 +75,7 @@ namespace DAL
         public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
         public DbSet<Relation> Relations => Set<Relation>();
         public DbSet<Message> Messages => Set<Message>();
+        public DbSet<Chat> Chats => Set<Chat>();
+        public DbSet<ChatParticipant> ChatParticipants => Set<ChatParticipant>();
     }
 }

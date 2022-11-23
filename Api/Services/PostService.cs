@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Routing;
 using System.IO;
 using System.Linq;
 using Api.Models.Relation;
+using Api.Exceptions;
 
 namespace Api.Services
 {
@@ -35,23 +36,23 @@ namespace Api.Services
         public async Task<AttachModel> GetPostContent(Guid userId, Guid postContentId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var content = await _context.PostContent.Include(x => x.Author)
                                                         .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
                                                     .FirstOrDefaultAsync(x => x.Id == postContentId && x.IsActive);
             if (content == null)
-                throw new Exception("content not found");
+                throw new ContentNotFoundException();
             if (!content.Author.PrivateAccount && content.Author.Followers.FirstOrDefault()?.State != false
             || content.Author.Followers.FirstOrDefault()?.State == true
             || userId == content.AuthorId)
                 return _mapper.Map<AttachModel>(content);
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task CreatePost(CreatePostRequest request, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var postModel = _mapper.Map<CreatePostModel>(request);
             postModel.AuthorId = userId;
             var post = _mapper.Map<Post>(postModel);
@@ -63,7 +64,7 @@ namespace Api.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var post = await _context.Posts.AsNoTracking()
                                            .Include(x => x.Author)
                                                .ThenInclude(x => x.Avatar)
@@ -78,22 +79,22 @@ namespace Api.Services
                                            .Include(x => x.Likes)
                                            .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
                 return _mapper.Map<PostModel>(post);
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task<List<PostModel>> GetPostsByUserId(Guid userId, Guid targetUserId, int skip, int take)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
             if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
                 || targetUser.Followers.FirstOrDefault()?.State == true
                 || userId == targetUserId)
@@ -116,13 +117,13 @@ namespace Api.Services
                         .ToListAsync();
                 return posts;
             }
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task<List<PostModel>> GetPostFeed(Guid userId, int skip, int take)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var followedUsersId = await _context.Relations.AsNoTracking()
                                                             .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
                                                             .Select(x => x.FollowedId)
@@ -151,9 +152,9 @@ namespace Api.Services
             var user = await _context.Users.Include(x => x.Posts.Where(y => y.Id == model.PostId && y.IsActive))
                                            .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             if (user.Posts.Count == 0)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             user.Posts.First().Description = model.Description;
             user.Posts.First().Changed = true;
             await _context.SaveChangesAsync();
@@ -162,15 +163,15 @@ namespace Api.Services
         public async Task DeletePost(Guid postId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var post = await _context.Posts.Include(x => x.Author)
                                             .Include(x => x.Comments)
                                             .Include(x => x.Content)
                                             .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             if (post.Author.Id != userId)
-                throw new Exception("you are not the owner of the post");
+                throw new UserDontHaveAccessException();
             post.IsActive = false;
             post.Comments.ToList().ForEach(x => x.IsActive = false);
             post.Content.ToList().ForEach(x => x.IsActive = false);
@@ -180,12 +181,12 @@ namespace Api.Services
         public async Task CreateComment(CreateComment commentRequest, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var post = await _context.Posts.Include(x => x.Author)
                                                 .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
                                             .FirstOrDefaultAsync(x => x.Id == commentRequest.PostId && x.IsActive);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
@@ -196,13 +197,13 @@ namespace Api.Services
                 await _context.SaveChangesAsync();
             }
             else
-                throw new Exception("you don't have access");
+                throw new UserDontHaveAccessException();
         }
 
         public async Task<CommentModel> GetComment(Guid userId, Guid commentId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var comment = await _context.Comments.AsNoTracking()
                                                  .Include(x => x.Likes)
                                                  .Include(x => x.Post)
@@ -210,19 +211,19 @@ namespace Api.Services
                                                         .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
                                                  .FirstOrDefaultAsync(x => x.Id == commentId && x.IsActive);
             if (comment == null)
-                throw new Exception("comment not found");
+                throw new CommentNotFoundException();
             if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
                 || comment.Post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == comment.UserId)
                 return _mapper.Map<CommentModel>(comment);
             else
-                throw new Exception("you don't have access");
+                throw new UserDontHaveAccessException();
         }
        
         public async Task<List<CommentModel>> GetComments(Guid userId, Guid postId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var post = await _context.Posts.AsNoTracking()
                                             .Include(x => x.Author)
                                                 .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
@@ -232,25 +233,25 @@ namespace Api.Services
                                                 .ThenInclude(x => x.Author)
                                             .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
                 return post.Comments.OrderByDescending(x => x.Created).Select(x => _mapper.Map<CommentModel>(x)).ToList();
             else
-                throw new Exception("you don't have access");
+                throw new UserDontHaveAccessException();
         }
 
         public async Task ChangeComment(ChangeCommentModel newComment, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var comment = _context.Comments.Include(x => x.Author)
                                             .FirstOrDefault(x => x.Id == newComment.CommentId && x.IsActive);
             if (comment == null)
-                throw new Exception("comment not found");
+                throw new CommentNotFoundException();
             if (comment.Author.Id != userId)
-                throw new Exception("you are not the owner of the comment");
+                throw new UserDontHaveAccessException();
             comment.CommentText = newComment.CommentText;
             comment.Changed = true;
             await _context.SaveChangesAsync();
@@ -259,14 +260,14 @@ namespace Api.Services
         public async Task DeleteComment(Guid commentId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var comment = _context.Comments.Include(x => x.Author)
                                            .Include(x => x.Post)
                                            .FirstOrDefault(x => x.Id == commentId && x.IsActive);
             if (comment == null)
-                throw new Exception("comment not found");
+                throw new CommentNotFoundException();
             if (comment.Author.Id != userId && comment.Post.AuthorID != userId)
-                throw new Exception("you can't delete this comment");
+                throw new UserDontHaveAccessException();
             comment.IsActive = false;
             await _context.SaveChangesAsync();
         }
@@ -274,14 +275,14 @@ namespace Api.Services
         public async Task DeletePostContent(Guid contentId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var content = await _context.PostContent.Include(x => x.Author)
                                                     .Include(x => x.Post)
                                                     .FirstOrDefaultAsync(x => x.Id == contentId && x.IsActive);
             if (content == null)
-                throw new Exception("content not found");
+                throw new ContentNotFoundException();
             if (content.Author.Id != userId)
-                throw new Exception("you are not the owner of the post");
+                throw new UserDontHaveAccessException();
             content.IsActive = false;
             content.Post.Changed = true;
             await _context.SaveChangesAsync();

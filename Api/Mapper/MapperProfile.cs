@@ -1,6 +1,7 @@
 ﻿using Api.Controllers;
 using Api.Mapper.MapperAction;
 using Api.Models.Attach;
+using Api.Models.Chat;
 using Api.Models.Comment;
 using Api.Models.Message;
 using Api.Models.Post;
@@ -74,6 +75,9 @@ namespace Api.Mapper
                 .ForMember(d => d.Created, m => m.MapFrom(s => DateTimeOffset.UtcNow));
 
             CreateMap<Message, MessageModel>();
+
+            CreateMap<Chat, ChatModel>()
+                .ForMember(d => d.LastMessage, m => m.MapFrom(s => s.Messages.OrderByDescending(x => x.Created).FirstOrDefault()));
         }
     }
 }

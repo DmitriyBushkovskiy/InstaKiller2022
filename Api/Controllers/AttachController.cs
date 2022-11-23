@@ -1,4 +1,5 @@
-﻿using Api.Models.Attach;
+﻿using Api.Exceptions;
+using Api.Models.Attach;
 using Api.Services;
 using Common.Consts;
 using Common.Extentions;
@@ -35,7 +36,7 @@ namespace Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("you are not authorized");
+                throw new UserNotAuthorizedException();
             return RenderAttach(await _postService.GetPostContent(userId, postContentId), download);
         }
 

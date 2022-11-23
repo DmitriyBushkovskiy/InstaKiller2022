@@ -1,4 +1,5 @@
-﻿using Api.Models.Attach;
+﻿using Api.Exceptions;
+using Api.Models.Attach;
 using Api.Models.Post;
 using Api.Models.User;
 using AutoMapper;
@@ -34,7 +35,7 @@ namespace Api.Services
             var user = _context.Users.Include(x => x.Avatar)
                                      .FirstOrDefault(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var avatar = _mapper.Map<Avatar>(model);
             avatar.UserID = avatar.AuthorId = userId;
             user.Avatar = avatar;
@@ -51,7 +52,7 @@ namespace Api.Services
         {
             var user = await GetUserById(userId);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             user.IsActive = false;
             await _context.SaveChangesAsync();
         }
@@ -69,6 +70,8 @@ namespace Api.Services
             return await _context.Users.AsNoTracking()
                                         .Where(x => x.IsActive)
                                         .Include(x => x.Avatar)
+                                        .Include(x => x.Followers)
+                                        .Include(x => x.Followed)
                                         .OrderByDescending(x => x.Registered)
                                         .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x))
                                         .ToListAsync();
@@ -85,7 +88,7 @@ namespace Api.Services
             var user = await _context.Users.Include(x => x.Avatar)
                                            .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             return user;
         }
 
@@ -93,7 +96,7 @@ namespace Api.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             _mapper.Map<ChangeUserDataModel, User>(data, user);
             await _context.SaveChangesAsync();
         }
@@ -101,25 +104,25 @@ namespace Api.Services
         public async Task<UserDataModel> GetUserData(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
-                throw new Exception("target user not found");
+                throw new UserNotFoundException();
             if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
             || targetUser.Followers.FirstOrDefault()?.State == true
             || userId == targetUserId)
             {
                 return _mapper.Map<UserDataModel>(targetUser);
             }
-            throw new Exception("you don't have access");
+            throw new UserDontHaveAccessException();
         }
 
         public async Task ChangeUsername(ChangeUsernameModel data, Guid userId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             if (await _context.Users.AnyAsync(x => x.Username.ToLower() == data.Username.ToLower()))
                 throw new Exception("username is already exist");
             user.Username = data.Username;
@@ -130,7 +133,7 @@ namespace Api.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
-                throw new Exception("user not found");
+                throw new UserNotFoundException();
             if (await _context.Users.AnyAsync(x => x.Email.ToLower() == data.Email.ToLower()))
                 throw new Exception("email is already exist");
             user.Email = data.Email;
