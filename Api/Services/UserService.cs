@@ -72,6 +72,7 @@ namespace Api.Services
                                         .Include(x => x.Avatar)
                                         .Include(x => x.Followers)
                                         .Include(x => x.Followed)
+                                        .Include(x => x.Posts)
                                         .OrderByDescending(x => x.Registered)
                                         .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x))
                                         .ToListAsync();
@@ -86,7 +87,10 @@ namespace Api.Services
         private async Task<User> GetUserById(Guid userId)
         {
             var user = await _context.Users.Include(x => x.Avatar)
-                                           .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+                                            .Include(x => x.Posts)
+                                            .Include(x => x.Followers)
+                                            .Include(x => x.Followed)
+                                            .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
                 throw new UserNotFoundException();
             return user;
@@ -105,11 +109,13 @@ namespace Api.Services
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
-            var targetUser = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == userId))
+            var targetUser = await _context.Users.Include(x => x.Followers)
+                                                 .Include(x => x.Followed)
+                                                 .Include(x => x.Posts)
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
                 throw new UserNotFoundException();
-            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
+            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault(x => x.Follower.Id == userId)?.State != false
             || targetUser.Followers.FirstOrDefault()?.State == true
             || userId == targetUserId)
             {

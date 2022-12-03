@@ -97,9 +97,9 @@ namespace Api.Services
             if (user == default)
                 throw new UserNotFoundException();
             if (!user.IsActive)
-                throw new Exception("user is not active");
+                throw new UnauthorizedAccessException("user is not active");
             if (!HashHelper.Verify(pass, user.PasswordHash))
-                throw new Exception("password is incorrect");
+                throw new UnauthorizedAccessException("password is incorrect");
             return user;
         }
 

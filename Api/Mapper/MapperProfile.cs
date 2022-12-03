@@ -28,11 +28,19 @@ namespace Api.Mapper
                 .ForMember(d => d.Registered, m => m.MapFrom(s => DateTimeOffset.UtcNow))
                 ;
 
-            CreateMap<User, UserModel>();
+            CreateMap<User, UserModel>()
+                .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Count()))
+                .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Count()))
+                .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Count()))
+                ;
+
             CreateMap<Avatar, AttachModel>();
             CreateMap<PostContent, AttachModel>();
 
             CreateMap<User, UserWithAvatarLinkModel>()
+                .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Count()))
+                .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Count()))
+                .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Count()))
                 .AfterMap<UserWithAvatarMapperAction>();
 
             CreateMap<PostContent, PostContentModel>()
@@ -53,7 +61,11 @@ namespace Api.Mapper
 
             CreateMap<ChangeUserDataModel, User>();
 
-            CreateMap<User, UserDataModel>();
+            CreateMap<User, UserDataModel>()
+                .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Count()))
+                .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Count()))
+                .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Count()))
+                ;
             
             CreateMap<MetadataModel, Avatar>()
                 .AfterMap<AttachMapperAction>();

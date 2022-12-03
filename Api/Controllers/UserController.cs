@@ -40,7 +40,18 @@ namespace Api.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IEnumerable<UserWithAvatarLinkModel>> GetUsers() => await _userService.GetUsers();
+
+        [HttpGet]
+        public async Task<UserWithAvatarLinkModel> GetUser(Guid targetUserId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            else
+                return await _userService.GetUser(targetUserId);
+        }
 
         [HttpGet]
         public async Task<UserWithAvatarLinkModel> GetCurrentUser()

@@ -12,5 +12,8 @@ namespace Api.Models.User
         public string? Bio { get; set; }
         public string? Phone { get; set; }
         public bool PrivateAccount { get; set; }
+        public int PostsAmount { get; set; }
+        public int FollowedAmount { get; set; }
+        public int FollowersAmount { get; set; }
     }
 }

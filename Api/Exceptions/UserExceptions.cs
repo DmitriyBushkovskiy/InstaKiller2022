@@ -1,4 +1,6 @@
-﻿namespace Api.Exceptions
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+
+namespace Api.Exceptions
 {
     public class NotFoundException : Exception
     {
@@ -54,12 +56,12 @@
         }
     }
 
-    public class UserNotAuthorizedException : Exception
+    public class UserNotAuthorizedException : UnauthorizedAccessException
     {
         public override string Message => $"You are not authorized";
     }
 
-    public class UserDontHaveAccessException : Exception
+    public class UserDontHaveAccessException : UnauthorizedAccessException
     {
         public override string Message => $"You don't have access";
     }

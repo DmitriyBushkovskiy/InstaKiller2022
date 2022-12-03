@@ -41,6 +41,7 @@ namespace Api.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("{userId}")]
         public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
             => RenderAttach(await _userService.GetUserAvatar(userId), download);

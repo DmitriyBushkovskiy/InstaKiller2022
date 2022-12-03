@@ -26,6 +26,12 @@ namespace Api.Middlewares
                 await context.Response.WriteAsJsonAsync(ex.Message);
                 //await context.Response.CompleteAsync()
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(ex.Message);
+                //await context.Response.CompleteAsync()
+            }
         }
     }
     public static class ErrorMiddlewareExtensions
