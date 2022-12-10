@@ -11,5 +11,6 @@ namespace Api.Models.Comment
         public Guid UserId { get; set; }
         public string Username { get; set; } = null!;
         public int Likes { get; set; }
+        public bool LikedByMe { get; set; }
     }
 }

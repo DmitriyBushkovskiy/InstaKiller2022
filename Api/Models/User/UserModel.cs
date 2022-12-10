@@ -8,5 +8,7 @@
         public int PostsAmount { get; set; }
         public int FollowedAmount { get; set; }
         public int FollowersAmount { get; set; }
+        public bool PrivateAccount { get; set; }
+        public bool ColorAvatar { get; set; }
     }
 }

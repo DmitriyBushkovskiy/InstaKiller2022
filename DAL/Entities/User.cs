@@ -21,6 +21,7 @@ namespace DAL.Entities
         public bool IsEmailConfirmed { get; set; }
         public bool PrivateAccount { get; set; }
         public bool IsActive { get; set; } = true;
+        public bool colorAvatar { get; set; } = false;
         public virtual Avatar? Avatar { get; set; }
         public virtual ICollection<UserSession> Sessions { get; set; } = null!;
         public virtual ICollection<Post> Posts { get; set; } = null!;

@@ -38,6 +38,7 @@ namespace Api.Controllers
                 => Url.ControllerAction<AttachController>(nameof(AttachController.GetUserAvatar), new { userId = x.Id });
             linkGeneratorService.LinkContentGenerator = x
                 => Url.ControllerAction<AttachController>(nameof(AttachController.GetPostContent), new { postContentId = x.Id });
+            _postService.UserId = x => User.GetClaimValue<Guid>(ClaimNames.Id);
         }
 
         // Posts

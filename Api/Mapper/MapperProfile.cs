@@ -50,23 +50,23 @@ namespace Api.Mapper
                 
             CreateMap<Comment, CommentModel>()
                 .ForMember(d => d.Likes, m => m.MapFrom(s => s.Likes.Count))
-                .ForMember(d => d.Username, m => m.MapFrom(s => s.Author.Username));
+                .ForMember(d => d.Username, m => m.MapFrom(s => s.Author.Username))
+                .AfterMap<CommentModelMapperAction>();
+
 
             CreateMap<CreateComment, Comment>()
                 .ForMember(d => d.Created, m => m.MapFrom(s => DateTimeOffset.UtcNow));
 
             CreateMap<Post, PostModel>()
                 .ForMember(d => d.Likes, m => m.MapFrom(s => s.Likes.Count))
-                .ForMember(d => d.PostContent, m => m.MapFrom(s => s.Content));
+                .ForMember(d => d.PostContent, m => m.MapFrom(s => s.Content))
+                .AfterMap<PostModelMapperAction>();
 
             CreateMap<ChangeUserDataModel, User>();
 
-            CreateMap<User, UserDataModel>()
-                .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Count()))
-                .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Count()))
-                .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Count()))
+            CreateMap<User, UserDataModel>() 
                 ;
-            
+
             CreateMap<MetadataModel, Avatar>()
                 .AfterMap<AttachMapperAction>();
 

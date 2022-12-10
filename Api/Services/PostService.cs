@@ -26,6 +26,7 @@ namespace Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
+        public Func<string, Guid>? UserId { get; set; }
 
         public PostService(IMapper mapper, DataContext context)
         {
@@ -215,7 +216,9 @@ namespace Api.Services
             if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
                 || comment.Post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == comment.UserId)
+            {
                 return _mapper.Map<CommentModel>(comment);
+            }
             else
                 throw new UserDontHaveAccessException();
         }
@@ -237,7 +240,9 @@ namespace Api.Services
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
-                return post.Comments.OrderByDescending(x => x.Created).Select(x => _mapper.Map<CommentModel>(x)).ToList();
+                return post.Comments.OrderByDescending(x => x.Created)
+                    .Select(x => _mapper.Map<CommentModel>(x))
+                    .ToList();
             else
                 throw new UserDontHaveAccessException();
         }
