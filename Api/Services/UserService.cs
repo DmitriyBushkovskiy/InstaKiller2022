@@ -42,6 +42,17 @@ namespace Api.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> ChangeAvatarColor(Guid userId)
+        {
+            var user = _context.Users.Include(x => x.Avatar)
+                                     .FirstOrDefault(x => x.Id == userId && x.IsActive);
+            if (user == default)
+                throw new UserNotFoundException();
+            user.colorAvatar = !user.colorAvatar;
+            await _context.SaveChangesAsync();
+            return user.colorAvatar;
+        }
+
         public async Task<AttachModel> GetUserAvatar(Guid userId) 
         {
             var user = await GetUserById(userId);
@@ -87,7 +98,7 @@ namespace Api.Services
         private async Task<User> GetUserById(Guid userId)
         {
             var user = await _context.Users.Include(x => x.Avatar)
-                                            .Include(x => x.Posts)
+                                            .Include(x => x.Posts.Where(x => x.IsActive))
                                             .Include(x => x.Followers)
                                             .Include(x => x.Followed)
                                             .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
@@ -115,9 +126,10 @@ namespace Api.Services
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
                 throw new UserNotFoundException();
-            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault(x => x.Follower.Id == userId)?.State != false
-            || targetUser.Followers.FirstOrDefault()?.State == true
-            || userId == targetUserId)
+            if (userId == targetUserId 
+                || !targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault(x => x.Follower.Id == userId)?.State != false
+                || targetUser.Followers.FirstOrDefault()?.State == true
+            )
             {
                 return _mapper.Map<UserDataModel>(targetUser);
             }

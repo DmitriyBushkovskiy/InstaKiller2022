@@ -132,7 +132,7 @@ internal class Program
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseTokenValidator();
-        app.UseGlobalErrorWrapper();
+        //app.UseGlobalErrorWrapper();
         app.MapControllers();
 
         app.Run();

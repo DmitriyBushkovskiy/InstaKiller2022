@@ -39,11 +39,21 @@ namespace Api.Controllers
             await _userService.AddAvatarToUser(userId, model);
         }
 
+        [HttpPut]
+        public async Task<bool> ChangeAvatarColor()
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _userService.ChangeAvatarColor(userId);
+        }
+
         [HttpGet]
         [AllowAnonymous]
         public async Task<IEnumerable<UserWithAvatarLinkModel>> GetUsers() => await _userService.GetUsers();
 
         [HttpGet]
+        [Route("{targetUserId}")]
         public async Task<UserWithAvatarLinkModel> GetUser(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);

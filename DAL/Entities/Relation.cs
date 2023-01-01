@@ -15,4 +15,14 @@ namespace DAL.Entities
         public virtual User Followed { get; set; } = null!;
         public bool? State { get; set; }
     }
+
+    public class RelationWithEnum
+    {
+        public Guid Id { get; set; }
+        public Guid FollowerId { get; set; }
+        public virtual User Follower { get; set; } = null!;
+        public Guid FollowedId { get; set; }
+        public virtual User Followed { get; set; } = null!;
+        public string? State { get; set; }
+    }
 }

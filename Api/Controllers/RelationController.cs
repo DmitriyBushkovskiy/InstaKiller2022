@@ -66,7 +66,17 @@ namespace Api.Controllers
                 throw new UserNotAuthorizedException();
             return await _relationService.GetFollowers(userId, targetUserId);
         }
-        
+
+        [HttpGet]
+        [Route("{targetUserId}")]
+        public async Task<bool?> GetRelationState(Guid targetUserId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _relationService.GetRelationState(userId, targetUserId);
+        }
+
         [HttpPut]
         [Route("{targetUserId}")]
         public async Task<bool?> Follow(Guid targetUserId)

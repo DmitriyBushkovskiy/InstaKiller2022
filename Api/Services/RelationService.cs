@@ -71,6 +71,16 @@ namespace Api.Services
             return result;
         }
 
+        public async Task<bool?> GetRelationState(Guid userId, Guid targetUserId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+            if (user == default)
+                throw new UserNotFoundException();
+            var result = await _context.Relations.Include(x => x.Follower)
+                                                .FirstOrDefaultAsync(x => x.FollowedId == targetUserId && x.FollowerId == userId && x.Follower.IsActive);
+            return result?.State;
+        }
+
         public async Task<List<FollowerModel>> GetBanned(Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
@@ -174,4 +184,4 @@ namespace Api.Services
             }
         }
     }
-}
+ }

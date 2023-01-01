@@ -1,6 +1,7 @@
 ﻿using Api.Exceptions;
 using Api.Models.Attach;
 using Api.Models.Comment;
+using Api.Models.Like;
 using Api.Models.Post;
 using Api.Models.PostContent;
 using Api.Models.Relation;
@@ -77,7 +78,35 @@ namespace Api.Controllers
             if (userId == default)
                 throw new UserNotAuthorizedException();
             return await _postService.GetPostFeed(userId, skip, take);
-        } 
+        }
+
+
+        [HttpGet] //TODO: custom
+        public async Task<List<PostModel>> GetPostFeedByLastId(Guid? lastPostId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _postService.GetPostFeedByLastId(userId, lastPostId);
+        }
+
+        [HttpGet] //TODO: custom
+        public async Task<List<PostModel>> GetPostFeedByLastPostDate(String? lastPostDate)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _postService.GetPostFeedByLastPostDate(userId, lastPostDate);
+        }
+
+        [HttpPut] //TODO: custom
+        public async Task<List<PostModel>> GetPostsByLastPostDate(GetPostsRequestModel model)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _postService.GetPostsByLastPostDate(userId, model);
+        }
 
         [HttpPut]
         public async Task ChangePostDescription(ChangePostDescriptionModel model)
@@ -90,7 +119,7 @@ namespace Api.Controllers
 
         [HttpPut]
         [Route("{postId}")]
-        public async Task<bool> LikePost(Guid postId)
+        public async Task<LikeDataModel> LikePost(Guid postId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -106,6 +135,16 @@ namespace Api.Controllers
             if (userId == default)
                 throw new UserNotAuthorizedException();
             await _postService.DeletePost(postId, userId);
+        }
+
+        [HttpPut]
+        [Route("{postId}")]
+        public async Task RestorePost(Guid postId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            await _postService.RestorePost(postId, userId);
         }
 
         // Comments
@@ -140,17 +179,17 @@ namespace Api.Controllers
         }
 
         [HttpPut]
-        public async Task ChangeComment(ChangeCommentModel newComment)
+        public async Task<CommentModel> ChangeComment(ChangeCommentModel newComment)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            await _postService.ChangeComment(newComment, userId);
+            return await _postService.ChangeComment(newComment, userId);
         }
 
         [HttpPut]
         [Route("{commentId}")]
-        public async Task<bool> LikeComment(Guid commentId)
+        public async Task<LikeDataModel> LikeComment(Guid commentId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -172,7 +211,7 @@ namespace Api.Controllers
 
         [HttpPut]
         [Route("{contentId}")]
-        public async Task<bool> LikeContent(Guid contentId)
+        public async Task<LikeDataModel> LikeContent(Guid contentId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)

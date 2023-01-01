@@ -1,6 +1,7 @@
 ﻿using Api.Configs;
 using Api.Exceptions;
 using Api.Models.Comment;
+using Api.Models.Like;
 using AutoMapper;
 using DAL;
 using DAL.Entities;
@@ -24,7 +25,7 @@ namespace Api.Services
             _config = config.Value;
         }
 
-        public async Task<bool> LikePost(Guid postId, Guid userId)
+        public async Task<LikeDataModel> LikePost(Guid postId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -35,6 +36,7 @@ namespace Api.Services
                                             .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
                 throw new PostNotFoundException();
+            LikeDataModel likeDataModel;
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
@@ -47,21 +49,22 @@ namespace Api.Services
                         PostId = postId,
                         UserId = userId,
                     };
+                    likeDataModel = new LikeDataModel() { LikedByMe = true, LikesAmount = post.Likes.Count + 1 };
                     _context.PostLikes.Add(like);
                     await _context.SaveChangesAsync();
-                    return true;
                 }
                 else
                 {
+                    likeDataModel = new LikeDataModel() { LikedByMe = false, LikesAmount = post.Likes.Count - 1 };
                     _context.PostLikes.Remove(like);
                     await _context.SaveChangesAsync();
-                    return false;
                 }
+                return likeDataModel;
             }
             throw new UserDontHaveAccessException();
         }
 
-        public async Task<bool> LikeComment(Guid commentId, Guid userId)
+        public async Task<LikeDataModel> LikeComment(Guid commentId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -73,9 +76,10 @@ namespace Api.Services
                                                     .FirstOrDefaultAsync(x => x.Id == commentId && x.IsActive);
             if (comment == null)
                 throw new CommentNotFoundException();
+            LikeDataModel likeDataModel;
             if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
                 || comment.Post.Author.Followers.FirstOrDefault()?.State == true
-                || userId == comment.UserId)
+                || userId == comment.AuthorId)
             {
                 var like = comment.Likes.FirstOrDefault(x => x.UserId == userId);
                 if (like == null)
@@ -85,22 +89,23 @@ namespace Api.Services
                         CommentId = commentId,
                         UserId = userId
                     };
+                    likeDataModel = new LikeDataModel() { LikedByMe = true, LikesAmount = comment.Likes.Count + 1 };
                     _context.CommentLikes.Add(like);
                     await _context.SaveChangesAsync();
-                    return true;
                 }
                 else
                 {
+                    likeDataModel = new LikeDataModel() { LikedByMe = false, LikesAmount = comment.Likes.Count - 1 };
                     _context.CommentLikes.Remove(like);
                     await _context.SaveChangesAsync();
-                    return false;
                 }
+                return likeDataModel;
             }
             else
                 throw new UserDontHaveAccessException();
         }
 
-        public async Task<bool> LikeContent(Guid contentId, Guid userId)
+        public async Task<LikeDataModel> LikeContent(Guid contentId, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -112,6 +117,7 @@ namespace Api.Services
                                                     .FirstOrDefaultAsync(x => x.Id == contentId && x.IsActive == true);
             if (content == null)
                 throw new ContentNotFoundException();
+            LikeDataModel likeDataModel;
             if (!content.Post.Author.PrivateAccount && content.Post.Author.Followers.FirstOrDefault()?.State != false
                 || content.Post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == content.AuthorId)
@@ -124,16 +130,17 @@ namespace Api.Services
                         ContentId = contentId,
                         UserId = userId
                     };
+                    likeDataModel = new LikeDataModel() { LikedByMe = true, LikesAmount = content.Likes.Count + 1 };
                     _context.ContentLikes.Add(like);
                     await _context.SaveChangesAsync();
-                    return true;
                 }
                 else
                 {
+                    likeDataModel = new LikeDataModel() { LikedByMe = false, LikesAmount = content.Likes.Count - 1 };
                     _context.ContentLikes.Remove(like);
                     await _context.SaveChangesAsync();
-                    return false;
                 }
+                return likeDataModel;
             }
             else
                 throw new UserDontHaveAccessException();

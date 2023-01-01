@@ -38,7 +38,7 @@ namespace Api.Mapper
             CreateMap<PostContent, AttachModel>();
 
             CreateMap<User, UserWithAvatarLinkModel>()
-                .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Count()))
+                .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Where(x => x.IsActive).Count()))
                 .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Count()))
                 .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Count()))
                 .AfterMap<UserWithAvatarMapperAction>();
@@ -50,7 +50,6 @@ namespace Api.Mapper
                 
             CreateMap<Comment, CommentModel>()
                 .ForMember(d => d.Likes, m => m.MapFrom(s => s.Likes.Count))
-                .ForMember(d => d.Username, m => m.MapFrom(s => s.Author.Username))
                 .AfterMap<CommentModelMapperAction>();
 
 

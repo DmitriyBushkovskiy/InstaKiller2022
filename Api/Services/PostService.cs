@@ -75,6 +75,7 @@ namespace Api.Services
                                                .ThenInclude(x => x.Likes)
                                            .Include(x => x.Comments.Where(y => y.IsActive))
                                                .ThenInclude(x => x.Author)
+                                                    .ThenInclude(x => x.Avatar)
                                            .Include(x => x.Content.Where(y => y.IsActive))
                                                .ThenInclude(x => x.Likes)
                                            .Include(x => x.Likes)
@@ -84,7 +85,8 @@ namespace Api.Services
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
-                return _mapper.Map<PostModel>(post);
+                post.Comments =  post.Comments.OrderBy(x => x.Created).ToList();
+;                return _mapper.Map<PostModel>(post);
             throw new UserDontHaveAccessException();
         }
 
@@ -148,6 +150,140 @@ namespace Api.Services
             return result;
         }
 
+        
+
+        public async Task<List<PostModel>> GetPostFeedByLastId(Guid userId, Guid? lastPostId) //TODO:custom
+        {
+            if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
+                throw new UserNotFoundException();
+            var followedUsersId = await _context.Relations.AsNoTracking()
+                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
+                                                            .Select(x => x.FollowedId)
+                                                            .ToListAsync();
+            var result = await _context.Posts.AsNoTracking()
+                                            .Where(x => followedUsersId.Contains(x.AuthorID) && x.IsActive)
+                                            .Include(x => x.Author)
+                                                .ThenInclude(x => x.Avatar)
+                                            .Include(x => x.Comments.Where(y => y.IsActive))
+                                                .ThenInclude(x => x.Likes)
+                                            .Include(x => x.Comments.Where(y => y.IsActive))
+                                                .ThenInclude(x => x.Author)
+                                            .Include(x => x.Content.Where(y => y.IsActive))
+                                                .ThenInclude(x => x.Likes)
+                                            .Include(x => x.Likes)
+                                            .OrderByDescending(x => x.Created)
+                                            .SkipWhile(x =>/* lastPostId != null && */x.Id != lastPostId)
+                                            .Take(3)
+                                            .Select(x => _mapper.Map<PostModel>(x))
+                                            .ToListAsync();
+            return result;
+        }
+
+        
+
+        public async Task<List<PostModel>> GetPostFeedByLastPostDate(Guid userId, String? lastPostDate) //TODO:custom
+        {
+            if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
+                throw new UserNotFoundException();
+            var followedUsersId = await _context.Relations.AsNoTracking()
+                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
+                                                            .Select(x => x.FollowedId)
+                                                            .ToListAsync();
+
+            var date = lastPostDate == null? DateTimeOffset.UtcNow: DateTimeOffset.Parse(lastPostDate);
+
+            var result = await _context.Posts.AsNoTracking()
+                                            .Where(x => followedUsersId.Contains(x.AuthorID) && x.IsActive && x.Created < date)
+                                            .Include(x => x.Author)
+                                                .ThenInclude(x => x.Avatar)
+                                            .Include(x => x.Comments.Where(y => y.IsActive))
+                                                .ThenInclude(x => x.Likes)
+                                            .Include(x => x.Comments.Where(y => y.IsActive))
+                                                .ThenInclude(x => x.Author)
+                                                    .ThenInclude(x => x.Avatar)
+                                            .Include(x => x.Content.Where(y => y.IsActive))
+                                                .ThenInclude(x => x.Likes)
+                                            .Include(x => x.Likes)
+                                            .OrderByDescending(x => x.Created)
+                                            .Take(5)
+                                            .Select(x => _mapper.Map<PostModel>(x))
+                                            .ToListAsync();
+
+            result.ForEach(x => x.Comments = x.Comments!.OrderBy(y => y.Created).ToList());
+            return result;
+        }
+
+
+
+        public async Task<List<PostModel>> GetPostsByLastPostDate(Guid userId, GetPostsRequestModel model) //TODO:custom
+        {
+            if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
+                throw new UserNotFoundException();
+
+            var date = model.LastPostDate == null ? DateTimeOffset.UtcNow : DateTimeOffset.Parse(model.LastPostDate);
+
+            var targetUser = await _context.Users.AsNoTracking()
+                .Include(x => x.Followers.Where(y => y.FollowerId == userId))
+                .FirstOrDefaultAsync(x => x.IsActive && x.Id == model.UserId);
+
+            if (targetUser != null && (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
+    || targetUser.Followers.FirstOrDefault()?.State == true
+    || userId == model.UserId))
+            {
+
+                var result = await _context.Posts.AsNoTracking()
+                                                .Where(x => x.AuthorID == model.UserId && x.IsActive && x.Created < date)
+                                                .Include(x => x.Author)
+                                                    .ThenInclude(x => x.Avatar)
+                                                .Include(x => x.Comments.Where(y => y.IsActive))
+                                                    .ThenInclude(x => x.Likes)
+                                                .Include(x => x.Comments.Where(y => y.IsActive))
+                                                    .ThenInclude(x => x.Author)
+                                                        .ThenInclude(x => x.Avatar)
+                                                .Include(x => x.Content.Where(y => y.IsActive))
+                                                    .ThenInclude(x => x.Likes)
+                                                .Include(x => x.Likes)
+                                                .OrderByDescending(x => x.Created)
+                                                .Take(model.postsAmount)
+                                                .Select(x => _mapper.Map<PostModel>(x))
+                                                .ToListAsync();
+
+                result.ForEach(x => x.Comments = x.Comments!.OrderBy(y => y.Created).ToList());
+                return result;
+            }
+            return new List<PostModel>();
+
+
+
+
+            //var posts = 
+
+            //var followedUsersId = await _context.Relations.AsNoTracking()
+            //                                                .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
+            //                                                .Select(x => x.FollowedId)
+            //                                                .ToListAsync();
+
+
+
+            //var result = await _context.Posts.AsNoTracking()
+            //                                .Where(x => followedUsersId.Contains(x.AuthorID) && x.IsActive && x.Created < date)
+            //                                .Include(x => x.Author)
+            //                                    .ThenInclude(x => x.Avatar)
+            //                                .Include(x => x.Comments.Where(y => y.IsActive))
+            //                                    .ThenInclude(x => x.Likes)
+            //                                .Include(x => x.Comments.Where(y => y.IsActive))
+            //                                    .ThenInclude(x => x.Author)
+            //                                        .ThenInclude(x => x.Avatar)
+            //                                .Include(x => x.Content.Where(y => y.IsActive))
+            //                                    .ThenInclude(x => x.Likes)
+            //                                .Include(x => x.Likes)
+            //                                .OrderByDescending(x => x.Created)
+            //                                .Take(5)
+            //                                .Select(x => _mapper.Map<PostModel>(x))
+            //                                .ToListAsync();
+
+        }
+
         public async Task ChangePostDescription(ChangePostDescriptionModel model, Guid userId)
         {
             var user = await _context.Users.Include(x => x.Posts.Where(y => y.Id == model.PostId && y.IsActive))
@@ -179,6 +315,24 @@ namespace Api.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task RestorePost(Guid postId, Guid userId)
+        {
+            if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
+                throw new UserNotFoundException();
+            var post = await _context.Posts.Include(x => x.Author)
+                                            .Include(x => x.Comments)
+                                            .Include(x => x.Content)
+                                            .FirstOrDefaultAsync(x => x.Id == postId && !x.IsActive);
+            if (post == null)
+                throw new PostNotFoundException();
+            //if (post.Author.Id != userId)
+            //    throw new UserDontHaveAccessException();
+            post.IsActive = true;
+            post.Comments.ToList().ForEach(x => x.IsActive = true);
+            post.Content.ToList().ForEach(x => x.IsActive = true);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task CreateComment(CreateComment commentRequest, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
@@ -193,7 +347,7 @@ namespace Api.Services
                 || userId == post.AuthorID)
             {
                 var comment = _mapper.Map<Comment>(commentRequest);
-                comment.UserId = userId;
+                comment.AuthorId = userId;
                 _context.Comments.Add(comment);
                 await _context.SaveChangesAsync();
             }
@@ -207,6 +361,8 @@ namespace Api.Services
                 throw new UserNotFoundException();
             var comment = await _context.Comments.AsNoTracking()
                                                  .Include(x => x.Likes)
+                                                 .Include(x => x.Author)
+                                                    .ThenInclude(x => x.Avatar)
                                                  .Include(x => x.Post)
                                                     .ThenInclude(x => x.Author)
                                                         .ThenInclude(x => x.Followers.Where(y => y.FollowerId == userId))
@@ -215,7 +371,7 @@ namespace Api.Services
                 throw new CommentNotFoundException();
             if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
                 || comment.Post.Author.Followers.FirstOrDefault()?.State == true
-                || userId == comment.UserId)
+                || userId == comment.AuthorId)
             {
                 return _mapper.Map<CommentModel>(comment);
             }
@@ -234,20 +390,21 @@ namespace Api.Services
                                                 .ThenInclude(x => x.Likes)
                                             .Include(x => x.Comments.Where(y => y.IsActive))
                                                 .ThenInclude(x => x.Author)
+                                                    .ThenInclude(x => x.Avatar)
                                             .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
                 throw new PostNotFoundException();
             if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
                 || post.Author.Followers.FirstOrDefault()?.State == true
                 || userId == post.AuthorID)
-                return post.Comments.OrderByDescending(x => x.Created)
+                return post.Comments.OrderBy(x => x.Created)
                     .Select(x => _mapper.Map<CommentModel>(x))
                     .ToList();
             else
                 throw new UserDontHaveAccessException();
         }
 
-        public async Task ChangeComment(ChangeCommentModel newComment, Guid userId)
+        public async Task<CommentModel> ChangeComment(ChangeCommentModel newComment, Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -260,6 +417,7 @@ namespace Api.Services
             comment.CommentText = newComment.CommentText;
             comment.Changed = true;
             await _context.SaveChangesAsync();
+            return await GetComment(userId, comment.Id);
         }
 
         public async Task DeleteComment(Guid commentId, Guid userId)
