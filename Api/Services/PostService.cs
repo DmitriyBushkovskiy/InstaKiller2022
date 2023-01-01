@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using Api.Models.Relation;
 using Api.Exceptions;
+using Common.Enums;
 
 namespace Api.Services
 {
@@ -43,8 +44,8 @@ namespace Api.Services
                                                     .FirstOrDefaultAsync(x => x.Id == postContentId && x.IsActive);
             if (content == null)
                 throw new ContentNotFoundException();
-            if (!content.Author.PrivateAccount && content.Author.Followers.FirstOrDefault()?.State != false
-            || content.Author.Followers.FirstOrDefault()?.State == true
+            if (!content.Author.PrivateAccount && content.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+            || content.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
             || userId == content.AuthorId)
                 return _mapper.Map<AttachModel>(content);
             throw new UserDontHaveAccessException();
@@ -82,8 +83,8 @@ namespace Api.Services
                                            .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
                 throw new PostNotFoundException();
-            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
-                || post.Author.Followers.FirstOrDefault()?.State == true
+            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == post.AuthorID)
                 post.Comments =  post.Comments.OrderBy(x => x.Created).ToList();
 ;                return _mapper.Map<PostModel>(post);
@@ -98,8 +99,8 @@ namespace Api.Services
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
                 throw new UserNotFoundException();
-            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
-                || targetUser.Followers.FirstOrDefault()?.State == true
+            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || targetUser.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == targetUserId)
             {
                 var posts = await _context.Posts.AsNoTracking()
@@ -128,7 +129,7 @@ namespace Api.Services
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
             var followedUsersId = await _context.Relations.AsNoTracking()
-                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
+                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == RelationState.Follower.ToString())
                                                             .Select(x => x.FollowedId)
                                                             .ToListAsync();
             var result = await _context.Posts.AsNoTracking()
@@ -157,7 +158,7 @@ namespace Api.Services
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
             var followedUsersId = await _context.Relations.AsNoTracking()
-                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
+                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == RelationState.Follower.ToString())
                                                             .Select(x => x.FollowedId)
                                                             .ToListAsync();
             var result = await _context.Posts.AsNoTracking()
@@ -186,7 +187,7 @@ namespace Api.Services
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
             var followedUsersId = await _context.Relations.AsNoTracking()
-                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == true)
+                                                            .Where(x => x.FollowerId == userId && x.Followed.IsActive && x.State == RelationState.Follower.ToString())
                                                             .Select(x => x.FollowedId)
                                                             .ToListAsync();
 
@@ -226,8 +227,8 @@ namespace Api.Services
                 .Include(x => x.Followers.Where(y => y.FollowerId == userId))
                 .FirstOrDefaultAsync(x => x.IsActive && x.Id == model.UserId);
 
-            if (targetUser != null && (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
-    || targetUser.Followers.FirstOrDefault()?.State == true
+            if (targetUser != null && (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+    || targetUser.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
     || userId == model.UserId))
             {
 
@@ -342,8 +343,8 @@ namespace Api.Services
                                             .FirstOrDefaultAsync(x => x.Id == commentRequest.PostId && x.IsActive);
             if (post == null)
                 throw new PostNotFoundException();
-            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
-                || post.Author.Followers.FirstOrDefault()?.State == true
+            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == post.AuthorID)
             {
                 var comment = _mapper.Map<Comment>(commentRequest);
@@ -369,8 +370,8 @@ namespace Api.Services
                                                  .FirstOrDefaultAsync(x => x.Id == commentId && x.IsActive);
             if (comment == null)
                 throw new CommentNotFoundException();
-            if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
-                || comment.Post.Author.Followers.FirstOrDefault()?.State == true
+            if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || comment.Post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == comment.AuthorId)
             {
                 return _mapper.Map<CommentModel>(comment);
@@ -394,8 +395,8 @@ namespace Api.Services
                                             .FirstOrDefaultAsync(x => x.Id == postId && x.IsActive);
             if (post == null)
                 throw new PostNotFoundException();
-            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
-                || post.Author.Followers.FirstOrDefault()?.State == true
+            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == post.AuthorID)
                 return post.Comments.OrderBy(x => x.Created)
                     .Select(x => _mapper.Map<CommentModel>(x))
@@ -457,3 +458,4 @@ namespace Api.Services
         }
     }
 }
+

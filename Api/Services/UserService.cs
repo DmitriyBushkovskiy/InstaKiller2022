@@ -5,6 +5,7 @@ using Api.Models.User;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Common;
+using Common.Enums;
 using DAL;
 using DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -127,8 +128,8 @@ namespace Api.Services
             if (targetUser == default)
                 throw new UserNotFoundException();
             if (userId == targetUserId 
-                || !targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault(x => x.Follower.Id == userId)?.State != false
-                || targetUser.Followers.FirstOrDefault()?.State == true
+                || !targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault(x => x.Follower.Id == userId)?.State != RelationState.Banned.ToString()
+                || targetUser.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
             )
             {
                 return _mapper.Map<UserDataModel>(targetUser);

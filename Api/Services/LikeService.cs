@@ -3,6 +3,7 @@ using Api.Exceptions;
 using Api.Models.Comment;
 using Api.Models.Like;
 using AutoMapper;
+using Common.Enums;
 using DAL;
 using DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -37,8 +38,8 @@ namespace Api.Services
             if (post == null)
                 throw new PostNotFoundException();
             LikeDataModel likeDataModel;
-            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != false
-                || post.Author.Followers.FirstOrDefault()?.State == true
+            if (!post.Author.PrivateAccount && post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == post.AuthorID)
             {
                 var like = post.Likes.FirstOrDefault(x => x.UserId == userId);
@@ -77,8 +78,8 @@ namespace Api.Services
             if (comment == null)
                 throw new CommentNotFoundException();
             LikeDataModel likeDataModel;
-            if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != false
-                || comment.Post.Author.Followers.FirstOrDefault()?.State == true
+            if (!comment.Post.Author.PrivateAccount && comment.Post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || comment.Post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == comment.AuthorId)
             {
                 var like = comment.Likes.FirstOrDefault(x => x.UserId == userId);
@@ -118,8 +119,8 @@ namespace Api.Services
             if (content == null)
                 throw new ContentNotFoundException();
             LikeDataModel likeDataModel;
-            if (!content.Post.Author.PrivateAccount && content.Post.Author.Followers.FirstOrDefault()?.State != false
-                || content.Post.Author.Followers.FirstOrDefault()?.State == true
+            if (!content.Post.Author.PrivateAccount && content.Post.Author.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                || content.Post.Author.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                 || userId == content.AuthorId)
             {
                 var like = content.Likes.FirstOrDefault(x => x.UserId == userId);

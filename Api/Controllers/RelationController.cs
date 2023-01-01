@@ -69,7 +69,7 @@ namespace Api.Controllers
 
         [HttpGet]
         [Route("{targetUserId}")]
-        public async Task<bool?> GetRelationState(Guid targetUserId)
+        public async Task<string> GetRelationState(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -79,7 +79,7 @@ namespace Api.Controllers
 
         [HttpPut]
         [Route("{targetUserId}")]
-        public async Task<bool?> Follow(Guid targetUserId)
+        public async Task<string> Follow(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)

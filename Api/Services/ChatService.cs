@@ -3,6 +3,7 @@ using Api.Models.Chat;
 using Api.Models.Message;
 using Api.Models.User;
 using AutoMapper;
+using Common.Enums;
 using DAL;
 using DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -33,8 +34,8 @@ namespace Api.Services
             var chat = await _context.Chats.FirstOrDefaultAsync(x => x.IsPrivate && x.Participants.Count == 2 && x.Participants.All(y => guids.Contains(y.UserId)));
             if (chat == null)
             {
-                if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
-                    || targetUser.Followers.FirstOrDefault()?.State == true
+                if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+                    || targetUser.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                     || userId == targetUser.Id)
                 {
                     chat = new Chat() 
@@ -83,8 +84,8 @@ namespace Api.Services
                                                  .FirstOrDefaultAsync(x => x.Id == targetUserId && x.IsActive);
             if (targetUser == default)
                 throw new UserNotFoundException();
-            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != false
-            || targetUser.Followers.FirstOrDefault()?.State == true
+            if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault()?.State != RelationState.Banned.ToString()
+            || targetUser.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
             || userId == targetUserId)
             {
                 chat.Participants.Add(new ChatParticipant()
