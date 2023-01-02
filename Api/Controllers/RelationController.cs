@@ -69,12 +69,22 @@ namespace Api.Controllers
 
         [HttpGet]
         [Route("{targetUserId}")]
-        public async Task<string> GetRelationState(Guid targetUserId)
+        public async Task<string> GetMyRelationState(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _relationService.GetRelationState(userId, targetUserId);
+            return await _relationService.GetMyRelationState(userId, targetUserId);
+        }
+
+        [HttpGet]
+        [Route("{targetUserId}")]
+        public async Task<string> GetRelationToMeState(Guid targetUserId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _relationService.GetRelationToMeState(userId, targetUserId);
         }
 
         [HttpPut]
@@ -89,22 +99,22 @@ namespace Api.Controllers
 
         [HttpPut]
         [Route("{targetUserId}")]
-        public async Task Ban(Guid targetUserId)
+        public async Task<string> Ban(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            await _relationService.Ban(userId, targetUserId);
+            return await _relationService.Ban(userId, targetUserId);
         }
 
         [HttpPut]
         [Route("{targetUserId}")]
-        public async Task Unban(Guid targetUserId)
+        public async Task<string> Unban(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            await _relationService.Unban(userId, targetUserId);
+            return await _relationService.Unban(userId, targetUserId);
         }
     }
 }

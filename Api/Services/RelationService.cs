@@ -72,13 +72,23 @@ namespace Api.Services
             return result;
         }
 
-        public async Task<string> GetRelationState(Guid userId, Guid targetUserId)
+        public async Task<string> GetMyRelationState(Guid userId, Guid targetUserId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
                 throw new UserNotFoundException();
             var result = await _context.Relations.Include(x => x.Follower)
                                                 .FirstOrDefaultAsync(x => x.FollowedId == targetUserId && x.FollowerId == userId && x.Follower.IsActive);
+            return result?.State ?? RelationState.NotState.ToString();
+        }
+
+        public async Task<string> GetRelationToMeState(Guid userId, Guid targetUserId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+            if (user == default)
+                throw new UserNotFoundException();
+            var result = await _context.Relations.Include(x => x.Follower)
+                                                .FirstOrDefaultAsync(x => x.FollowedId == userId && x.FollowerId == targetUserId && x.Follower.IsActive);
             return result?.State ?? RelationState.NotState.ToString();
         }
 
@@ -116,7 +126,7 @@ namespace Api.Services
             throw new UserDontHaveAccessException();
         }
 
-        public async Task<string?> Follow(Guid userId, Guid targetUserId)
+        public async Task<string> Follow(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
@@ -147,7 +157,7 @@ namespace Api.Services
             }
         }
 
-        public async Task Ban(Guid userId, Guid targetUserId)
+        public async Task<string> Ban(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -161,13 +171,15 @@ namespace Api.Services
             {
                 relation = new Relation() { FollowedId = userId, FollowerId = targetUserId, State = RelationState.Banned.ToString() };
                 await _context.Relations.AddAsync(relation);
+                
             }
             else
                 relation.State = RelationState.Banned.ToString();
             await _context.SaveChangesAsync();
+            return relation.State;
         }
 
-        public async Task Unban(Guid userId, Guid targetUserId)
+        public async Task<string> Unban(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -183,6 +195,7 @@ namespace Api.Services
                 relation.State = RelationState.NotState.ToString();
                 await _context.SaveChangesAsync();
             }
+            return relation.State;
         }
     }
  }
