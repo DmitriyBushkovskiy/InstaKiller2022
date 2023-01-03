@@ -10,6 +10,7 @@ namespace DAL.Entities
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public DateTimeOffset Created { get; set; }
         public virtual User User { get; set; } = null!;
     }
 }

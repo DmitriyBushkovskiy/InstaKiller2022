@@ -89,6 +89,13 @@ namespace Api.Mapper
 
             CreateMap<Chat, ChatModel>()
                 .ForMember(d => d.LastMessage, m => m.MapFrom(s => s.Messages.OrderByDescending(x => x.Created).FirstOrDefault()));
+
+            CreateMap<User, RelationsModel>()
+                .ForMember(d => d.TargetUser, m => m.MapFrom(s => s))
+                .ForMember(d => d.TargetUserId, m => m.MapFrom(s => s.Id))
+                .AfterMap<RelationsModelMapperAction>();
+            ;
+            ;
         }
     }
 }

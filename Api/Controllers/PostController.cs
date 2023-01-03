@@ -109,6 +109,15 @@ namespace Api.Controllers
         }
 
         [HttpPut]
+        public async Task<List<PostModel>> GetFavoritePosts(GetPostsRequestModel model) 
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _postService.GetFavoritePosts(userId, model);
+        }
+
+        [HttpPut]
         public async Task ChangePostDescription(ChangePostDescriptionModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);

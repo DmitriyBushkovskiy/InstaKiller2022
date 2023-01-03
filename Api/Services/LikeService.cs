@@ -49,6 +49,7 @@ namespace Api.Services
                     {
                         PostId = postId,
                         UserId = userId,
+                        Created = DateTimeOffset.UtcNow,
                     };
                     likeDataModel = new LikeDataModel() { LikedByMe = true, LikesAmount = post.Likes.Count + 1 };
                     _context.PostLikes.Add(like);
@@ -88,7 +89,8 @@ namespace Api.Services
                     like = new CommentLike()
                     {
                         CommentId = commentId,
-                        UserId = userId
+                        UserId = userId,
+                        Created = DateTimeOffset.UtcNow,
                     };
                     likeDataModel = new LikeDataModel() { LikedByMe = true, LikesAmount = comment.Likes.Count + 1 };
                     _context.CommentLikes.Add(like);
@@ -129,7 +131,8 @@ namespace Api.Services
                     like = new ContentLike()
                     {
                         ContentId = contentId,
-                        UserId = userId
+                        UserId = userId,
+                        Created = DateTimeOffset.UtcNow,
                     };
                     likeDataModel = new LikeDataModel() { LikedByMe = true, LikesAmount = content.Likes.Count + 1 };
                     _context.ContentLikes.Add(like);

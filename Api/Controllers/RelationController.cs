@@ -3,6 +3,7 @@ using Api.Models.Relation;
 using Api.Services;
 using Common.Consts;
 using Common.Extentions;
+using DAL.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,6 +22,7 @@ namespace Api.Controllers
         public RelationController(RelationService relationService)
         {
             _relationService = relationService;
+            _relationService.UserId = x => User.GetClaimValue<Guid>(ClaimNames.Id);
         }
 
         /// <summary>
@@ -75,6 +77,26 @@ namespace Api.Controllers
             if (userId == default)
                 throw new UserNotAuthorizedException();
             return await _relationService.GetMyRelationState(userId, targetUserId);
+        }
+
+        [HttpGet]
+        [Route("{targetUserId}")]
+        public async Task<RelationsModel?> GetRelations(Guid targetUserId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _relationService.GetRelations(userId, targetUserId);
+        }
+
+        [HttpGet]
+        [Route("{userName}")]
+        public async Task<List<RelationsModel>> SearchUsers(string userName)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _relationService.SearchUsers(userId, userName);
         }
 
         [HttpGet]
