@@ -81,7 +81,7 @@ namespace Api.Controllers
 
         [HttpGet]
         [Route("{targetUserId}")]
-        public async Task<RelationsModel?> GetRelations(Guid targetUserId)
+        public async Task<RelationStateModel?> GetRelations(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -89,14 +89,13 @@ namespace Api.Controllers
             return await _relationService.GetRelations(userId, targetUserId);
         }
 
-        [HttpGet]
-        [Route("{userName}")]
-        public async Task<List<RelationsModel>> SearchUsers(string userName)
+        [HttpPut]
+        public async Task<List<RelationStateModel>> SearchUsers(SearchUsersRequestModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _relationService.SearchUsers(userId, userName);
+            return await _relationService.SearchUsers(userId, model);
         }
 
         [HttpGet]
@@ -137,6 +136,16 @@ namespace Api.Controllers
             if (userId == default)
                 throw new UserNotAuthorizedException();
             return await _relationService.Unban(userId, targetUserId);
+        }
+
+        [HttpPut]
+        [Route("{targetUserId}")]
+        public async Task<string> AcceptRequest(Guid targetUserId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _relationService.AcceptRequest(userId, targetUserId);
         }
     }
 }

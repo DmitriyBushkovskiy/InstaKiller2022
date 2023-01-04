@@ -94,7 +94,7 @@ namespace Api.Services
             return result?.State ?? RelationState.NotState.ToString();
         }
 
-        public async Task<RelationsModel?> GetRelations(Guid userId, Guid targetUserId)
+        public async Task<RelationStateModel?> GetRelations(Guid userId, Guid targetUserId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
@@ -108,7 +108,7 @@ namespace Api.Services
 
             if (targetUser != null)
             {
-                var relationsModel = new RelationsModel() { TargetUserId = targetUserId, 
+                var relationsModel = new RelationStateModel() {
                     TargetUser = _mapper.Map<UserWithAvatarLinkModel>(targetUser), 
                     RelationAsFollower = targetUser.Followers.FirstOrDefault(x => x.FollowerId == userId)?.State ?? RelationState.NotState.ToString(),
                     RelationAsFollowed = targetUser.Followed.FirstOrDefault(x => x.FollowedId == userId)?.State ?? RelationState.NotState.ToString(),
@@ -121,21 +121,21 @@ namespace Api.Services
             }
         }
 
-        public async Task<List<RelationsModel>> SearchUsers(Guid userId, string userName)
+        public async Task<List<RelationStateModel>> SearchUsers(Guid userId, SearchUsersRequestModel model)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
             if (user == default)
                 throw new UserNotFoundException();
-
-
 
             var result = await _context.Users.AsNoTracking()
                 .Include(x => x.Avatar)
                 .Include(x => x.Posts.Where(x => x.IsActive))
                 .Include(x => x.Followers)
                 .Include(x => x.Followed)
-                .Where(x => x.Username.Contains(userName))
-                .Select(x => _mapper.Map<RelationsModel>(x))
+                .Where(x => x.Username.Contains(model.Username) && x.Id != userId)
+                .Skip(model.Skip)
+                .Take(model.Take)
+                .Select(x => _mapper.Map<RelationStateModel>(x))
                 .ToListAsync();
             return result;
         }
@@ -244,6 +244,26 @@ namespace Api.Services
                 await _context.SaveChangesAsync();
             }
             return relation.State;
+        }
+
+        public async Task<string> AcceptRequest(Guid userId, Guid targetUserId)
+        {
+            if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
+                throw new UserNotFoundException();
+            var user = await _context.Users.Include(x => x.Followers.Where(y => y.FollowerId == targetUserId))
+                                     .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+            if (user == default)
+                throw new UserNotFoundException();
+            var relation = user.Followers.FirstOrDefault();
+
+            if (relation?.State == RelationState.Request.ToString())
+            {
+                relation.State = RelationState.Follower.ToString();
+                await _context.SaveChangesAsync();
+                return relation.State;
+            }
+            else
+                throw new Exception("You didn't send request");
         }
     }
 }
