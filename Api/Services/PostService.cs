@@ -263,13 +263,22 @@ namespace Api.Services
                 throw new UserNotFoundException();
 
             var date = model.LastPostDate == null ? DateTimeOffset.UtcNow : DateTimeOffset.Parse(model.LastPostDate);
+
             var likedPostsId = await _context.PostLikes.AsNoTracking()
-                                                        .Include(x => x.Post)
-                                                        .Where(x => x.UserId == userId && x.Created < date && x.Post.IsActive)
-                                                        .OrderByDescending(x => x.Created)
-                                                        .Take(model.postsAmount)
-                                                        .Select(x => x.PostId)
-                                                        .ToListAsync();
+                                            .Include(x => x.Post)
+                                            .ThenInclude(x => x.Author)
+                                            .ThenInclude(x => x.Followers)
+                                            .Where(x => x.UserId == userId
+                                            && x.Created < date
+                                            && x.Post.IsActive
+                                            && (!x.Post.Author.PrivateAccount 
+                                            && x.Post.Author.Followers.First(y => y.FollowerId == userId).State != RelationState.Banned.ToString()
+                                            || x.Post.Author.Followers.First(y => y.FollowerId == userId).State == RelationState.Follower.ToString()
+                                            || userId == model.UserId))
+                                            .OrderByDescending(x => x.Created)
+                                            .Take(model.postsAmount)
+                                            .Select(x => x.PostId)
+                                            .ToListAsync();
 
             var result = await _context.Posts.AsNoTracking()
                                             .Where(x => likedPostsId.Contains(x.Id))
