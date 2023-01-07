@@ -1,5 +1,6 @@
 ﻿using Api.Exceptions;
 using Api.Models.Relation;
+using Api.Models.User;
 using Api.Services;
 using Common.Consts;
 using Common.Extentions;
@@ -19,8 +20,10 @@ namespace Api.Controllers
     {
         private readonly RelationService _relationService;
 
-        public RelationController(RelationService relationService)
+        public RelationController(RelationService relationService, LinkGeneratorService linkGeneratorService)
         {
+            linkGeneratorService.LinkAvatarGenerator = x
+                => Url.ControllerAction<AttachController>(nameof(AttachController.GetUserAvatar), new { userId = x.Id });
             _relationService = relationService;
             _relationService.UserId = x => User.GetClaimValue<Guid>(ClaimNames.Id);
         }
@@ -31,42 +34,40 @@ namespace Api.Controllers
         /// State = false - забаненый аккаунт
         /// </summary>
         
-        [HttpGet]
-        [Route("{targetUserId}")]
-        public async Task<List<FollowedModel>> GetFollowed(Guid targetUserId)
+        [HttpPut]
+        public async Task<List<UserWithAvatarLinkModel>> GetFollowed(DataByUserIdRequest model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _relationService.GetFollowed(userId, targetUserId);
+            return await _relationService.GetFollowed(userId, model);
         }
 
-        [HttpGet]
-        public async Task<List<FollowerModel>> GetFollowersRequests()
+        [HttpPut]
+        public async Task<List<UserWithAvatarLinkModel>> GetFollowersRequests(DataByUserIdRequest model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _relationService.GetFollowersRequests(userId);
+            return await _relationService.GetFollowersRequests(userId, model);
         }
 
-        [HttpGet]
-        public async Task<List<FollowerModel>> GetBanned()
+        [HttpPut]
+        public async Task<List<UserWithAvatarLinkModel>> GetBanned(DataByUserIdRequest model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _relationService.GetBanned(userId);
+            return await _relationService.GetBanned(userId, model);
         }
 
-        [HttpGet]
-        [Route("{targetUserId}")]
-        public async Task<List<FollowerModel>> GetFollowers(Guid targetUserId)
+        [HttpPut]
+        public async Task<List<UserWithAvatarLinkModel>> GetFollowers(DataByUserIdRequest model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _relationService.GetFollowers(userId, targetUserId);
+            return await _relationService.GetFollowers(userId, model);
         }
 
         [HttpGet]
@@ -90,7 +91,7 @@ namespace Api.Controllers
         }
 
         [HttpPut]
-        public async Task<List<RelationStateModel>> SearchUsers(SearchUsersRequestModel model)
+        public async Task<List<UserWithAvatarLinkModel>> SearchUsers(SearchUsersRequestModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)

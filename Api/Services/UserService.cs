@@ -158,5 +158,18 @@ namespace Api.Services
             user.Email = data.Email;
             await _context.SaveChangesAsync();
         }
+
+        public async Task SetPushToken(Guid userId, string? token = null)
+        {
+            var user = await GetUserById(userId);
+            user.PushToken = token;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<string?> GetPushToken(Guid userId)
+        {
+            var user = await GetUserById(userId);
+            return user.PushToken;
+        }
     }
 }

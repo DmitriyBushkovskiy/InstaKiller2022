@@ -23,6 +23,7 @@ namespace DAL.Entities
         public bool IsActive { get; set; } = true;
         public bool colorAvatar { get; set; } = false;
         public virtual Avatar? Avatar { get; set; }
+        public string? PushToken { get; set; }
         public virtual ICollection<UserSession> Sessions { get; set; } = null!;
         public virtual ICollection<Post> Posts { get; set; } = null!;
         public virtual ICollection<Relation> Followers { get; set; } = null!;

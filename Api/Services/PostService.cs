@@ -216,8 +216,6 @@ namespace Api.Services
             return result;
         }
 
-
-
         public async Task<List<PostModel>> GetPostsByLastPostDate(Guid userId, GetPostsRequestModel model) //TODO:custom
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))

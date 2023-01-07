@@ -10,6 +10,7 @@ using Api.Models.Relation;
 using Api.Models.User;
 using AutoMapper;
 using Common;
+using Common.Enums;
 using DAL.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -39,8 +40,8 @@ namespace Api.Mapper
 
             CreateMap<User, UserWithAvatarLinkModel>()
                 .ForMember(d => d.PostsAmount, m => m.MapFrom(s => s.Posts.Where(x => x.IsActive).Count()))
-                .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Count()))
-                .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Count()))
+                .ForMember(d => d.FollowedAmount, m => m.MapFrom(s => s.Followed.Where(x => x.State == RelationState.Follower.ToString()).Count()))
+                .ForMember(d => d.FollowersAmount, m => m.MapFrom(s => s.Followers.Where(x => x.State == RelationState.Follower.ToString()).Count()))
                 .AfterMap<UserWithAvatarMapperAction>();
 
             CreateMap<PostContent, PostContentModel>()
