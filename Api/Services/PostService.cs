@@ -155,7 +155,7 @@ namespace Api.Services
 
 
 
-        public async Task<List<PostModel>> GetPostFeedByLastId(Guid userId, Guid? lastPostId) //TODO:custom
+        public async Task<List<PostModel>> GetPostFeedByLastId(Guid userId, Guid? lastPostId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
@@ -184,7 +184,7 @@ namespace Api.Services
 
 
 
-        public async Task<List<PostModel>> GetPostFeedByLastPostDate(Guid userId, String? lastPostDate) //TODO:custom
+        public async Task<List<PostModel>> GetPostFeedByLastPostDate(Guid userId, String? lastPostDate)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
@@ -216,7 +216,7 @@ namespace Api.Services
             return result;
         }
 
-        public async Task<List<PostModel>> GetPostsByLastPostDate(Guid userId, GetPostsRequestModel model) //TODO:custom
+        public async Task<List<PostModel>> GetPostsByLastPostDate(Guid userId, GetPostsRequestModel model)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive == true))
                 throw new UserNotFoundException();
@@ -340,8 +340,6 @@ namespace Api.Services
                                             .FirstOrDefaultAsync(x => x.Id == postId && !x.IsActive);
             if (post == null)
                 throw new PostNotFoundException();
-            //if (post.Author.Id != userId)
-            //    throw new UserDontHaveAccessException();
             post.IsActive = true;
             post.Comments.ToList().ForEach(x => x.IsActive = true);
             post.Content.ToList().ForEach(x => x.IsActive = true);

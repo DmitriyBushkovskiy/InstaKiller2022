@@ -1,4 +1,6 @@
-﻿namespace Api.Models.Message
+﻿using Api.Models.User;
+
+namespace Api.Models.Message
 {
     public class MessageModel
     {
@@ -7,5 +9,6 @@
         public string Text { get; set; } = null!;
         public DateTimeOffset Created { get; set; }
         public bool State { get; set; } = true;
+        public virtual UserWithAvatarLinkModel Author { get; set; } = null!;
     }
 }

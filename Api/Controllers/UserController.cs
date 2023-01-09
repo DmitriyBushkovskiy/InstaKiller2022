@@ -101,22 +101,36 @@ namespace Api.Controllers
             await _userService.ChangeUserData(data, userId);
         }
 
-        [HttpPut]
-        public async Task ChangeUsername(ChangeUsernameModel data)
+        //[HttpPut]
+        //public async Task ChangeUsername(ChangeUsernameModel data)
+        //{
+        //    var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+        //    if (userId == default)
+        //        throw new UserNotAuthorizedException();
+        //    await _userService.ChangeUsername(data, userId);
+        //}
+
+        //[HttpPut]
+        //public async Task ChangeEmail(ChangeEmailModel data)
+        //{
+        //    var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+        //    if (userId == default)
+        //        throw new UserNotAuthorizedException();
+        //    await _userService.ChangeEmail(data, userId);
+        //}
+
+        [HttpGet]
+        [Route("{email}")]
+        public async Task<bool> EmailIsNotTaken(string email)
         {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new UserNotAuthorizedException();
-            await _userService.ChangeUsername(data, userId);
+           return await _userService.EmailIsNotTaken(email);
         }
 
-        [HttpPut]
-        public async Task ChangeEmail(ChangeEmailModel data)
+        [HttpGet]
+        [Route("{username}")]
+        public async Task<bool> UsernameIsNotTaken(string username)
         {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new UserNotAuthorizedException();
-            await _userService.ChangeEmail(data, userId);
+            return await _userService.UsernameIsNotTaken(username);
         }
 
         [HttpDelete]

@@ -81,16 +81,16 @@ namespace Api.Controllers
         }
 
 
-        [HttpGet] //TODO: custom
-        public async Task<List<PostModel>> GetPostFeedByLastId(Guid? lastPostId)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new UserNotAuthorizedException();
-            return await _postService.GetPostFeedByLastId(userId, lastPostId);
-        }
+        //[HttpGet]
+        //public async Task<List<PostModel>> GetPostFeedByLastId(Guid? lastPostId)
+        //{
+        //    var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+        //    if (userId == default)
+        //        throw new UserNotAuthorizedException();
+        //    return await _postService.GetPostFeedByLastId(userId, lastPostId);
+        //}
 
-        [HttpGet] //TODO: custom
+        [HttpGet]
         public async Task<List<PostModel>> GetPostFeedByLastPostDate(String? lastPostDate)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -99,7 +99,7 @@ namespace Api.Controllers
             return await _postService.GetPostFeedByLastPostDate(userId, lastPostDate);
         }
 
-        [HttpPut] //TODO: custom
+        [HttpPut]
         public async Task<List<PostModel>> GetPostsByLastPostDate(GetPostsRequestModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -146,15 +146,15 @@ namespace Api.Controllers
             await _postService.DeletePost(postId, userId);
         }
 
-        [HttpPut]
-        [Route("{postId}")]
-        public async Task RestorePost(Guid postId)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new UserNotAuthorizedException();
-            await _postService.RestorePost(postId, userId);
-        }
+        //[HttpPut]
+        //[Route("{postId}")]
+        //public async Task RestorePost(Guid postId)
+        //{
+        //    var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+        //    if (userId == default)
+        //        throw new UserNotAuthorizedException();
+        //    await _postService.RestorePost(postId, userId);
+        //}
 
         // Comments
 

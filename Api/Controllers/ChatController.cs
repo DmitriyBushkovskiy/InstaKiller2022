@@ -30,11 +30,9 @@ namespace Api.Controllers
                 => Url.ControllerAction<AttachController>(nameof(AttachController.GetPostContent), new { postContentId = x.Id });
         }
 
-        //TODO: проверить эти методы еще раз
-
-        [HttpPost]
+        [HttpGet]
         [Route("{targetUserId}")]
-        public async Task<Guid> GetIdOrCreatePrivateChat(Guid targetUserId)
+        public async Task<string> GetIdOrCreatePrivateChat(Guid targetUserId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -60,13 +58,13 @@ namespace Api.Controllers
             await _chatService.AddUserToGroupChat(userId, targetUserId, chatId);
         }
 
-        [HttpGet]
-        public async Task<List<MessageModel>> GetChat(Guid chatId, int skip = 0, int take = 10)
+        [HttpPut]
+        public async Task<List<MessageModel>> GetChat(ChatRequestModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _chatService.GetChat(userId, chatId, skip, take);
+            return await _chatService.GetChat(userId, model);
         }
 
         [HttpGet]
@@ -107,7 +105,7 @@ namespace Api.Controllers
             await _chatService.AcceptRequest(userId, chatId);
         }
 
-        [HttpPost]
+        [HttpPut]
         public async Task SendMessage(CreateMessageModel message)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);

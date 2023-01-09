@@ -1,4 +1,5 @@
 ﻿using Api.Models.Message;
+using Api.Models.User;
 using DAL.Entities;
 
 namespace Api.Models.Chat
@@ -10,5 +11,6 @@ namespace Api.Models.Chat
         public Guid CreatorId { get; set; }
         public bool IsPrivate { get; set; }
         public MessageModel? LastMessage { get; set; }
+        public virtual List<UserWithAvatarLinkModel> Participants { get; set; } = null!;
     }
 }

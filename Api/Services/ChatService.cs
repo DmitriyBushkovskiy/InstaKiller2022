@@ -7,6 +7,7 @@ using Common.Enums;
 using DAL;
 using DAL.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 
 namespace Api.Services
@@ -22,7 +23,7 @@ namespace Api.Services
             _context = context;
         }
 
-        public async Task<Guid> GetIdOrCreatePrivateChat(Guid userId, Guid targetUserId)
+        public async Task<string> GetIdOrCreatePrivateChat(Guid userId, Guid targetUserId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
@@ -38,36 +39,36 @@ namespace Api.Services
                     || targetUser.Followers.FirstOrDefault()?.State == RelationState.Follower.ToString()
                     || userId == targetUser.Id)
                 {
-                    chat = new Chat() 
-                    { 
-                        IsPrivate = true, 
-                        CreatorId = userId, 
-                        Created = DateTimeOffset.UtcNow 
+                    chat = new Chat()
+                    {
+                        IsPrivate = true,
+                        CreatorId = userId,
+                        Created = DateTimeOffset.UtcNow
                     };
-                    chat.Participants.Add(new ChatParticipant() { UserId = userId , State = true});
-                    chat.Participants.Add(new ChatParticipant() { UserId = targetUserId, State = true});
+                    chat.Participants.Add(new ChatParticipant() { UserId = userId, State = true });
+                    chat.Participants.Add(new ChatParticipant() { UserId = targetUserId, State = true });
                     var chatEntity = await _context.Chats.AddAsync(chat);
                     await _context.SaveChangesAsync();
-                    return chatEntity.Entity.Id;
+                    return chatEntity.Entity.Id.ToString();
                 }
                 else
                     throw new UserDontHaveAccessException();
             }
             else
-                return chat.Id;
+                return chat.Id.ToString();
         }
 
         public async Task<Guid> CreateGroupChat(Guid userId)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
-            var chat = new Chat() 
-            { 
-                IsPrivate = false, 
-                CreatorId = userId, 
-                Created = DateTimeOffset.UtcNow 
+            var chat = new Chat()
+            {
+                IsPrivate = false,
+                CreatorId = userId,
+                Created = DateTimeOffset.UtcNow
             };
-            chat.Participants.Add(new ChatParticipant() { UserId = userId , State = true});
+            chat.Participants.Add(new ChatParticipant() { UserId = userId, State = true });
             var chatEntity = await _context.Chats.AddAsync(chat);
             await _context.SaveChangesAsync();
             return chatEntity.Entity.Id;
@@ -99,19 +100,21 @@ namespace Api.Services
                 throw new UserDontHaveAccessException();
         }
 
-        public async Task<List<MessageModel>> GetChat(Guid userId, Guid chatId, int skip, int take)
+        public async Task<List<MessageModel>> GetChat(Guid userId, ChatRequestModel model)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
             var chat = await _context.Chats.Include(x => x.Participants)
-                                           .FirstOrDefaultAsync(x => x.IsActive && x.Id == chatId && x.Participants.Any(y => y.UserId == userId));
+                                           .FirstOrDefaultAsync(x => x.IsActive && x.Id == model.ChatId && x.Participants.Any(y => y.UserId == userId));
             if (chat == null)
                 throw new ChatNotFoundException();
             var result = new List<MessageModel>();
-            await _context.Messages.Where(x => x.IsActive && x.ChatId == chatId)
+            await _context.Messages.Include(x => x.Author)
+                                        .ThenInclude(x => x.Avatar)
+                                    .Where(x => x.IsActive && x.ChatId == model.ChatId)
                                     .OrderByDescending(x => x.Created)
-                                    .Skip(skip)
-                                    .Take(take)
+                                    .Skip(model.Skip)
+                                    .Take(model.Take)
                                     .ForEachAsync(x =>
                                     {
                                         if (x.AuthorId != userId && !x.State)
@@ -122,18 +125,23 @@ namespace Api.Services
             return result;
         }
 
-        public async Task<List<ChatModel>>GetChats(Guid userId, int skip, int take)
+        public async Task<List<ChatModel>> GetChats(Guid userId, int skip, int take)
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
             var result = await _context.Chats.Include(x => x.Messages.OrderByDescending(x => x.Created).Where(x => x.IsActive).Take(1))
-                                             .Where(x => /*x.Messages.Count > 0 &&*/ x.IsActive && x.Participants.Any(y => y.UserId == userId && y.State == true))
-                                             .OrderByDescending(x => x.Messages.Count>0)                                          //пустые чаты в конце
-                                             .ThenByDescending(x => x.Messages.OrderByDescending(y => y.Created).First().Created) //затем сортировка по времени последнего сообщения
-                                             .Skip(skip)
-                                             .Take(take)
-                                             .Select(x => _mapper.Map<ChatModel>(x))
-                                             .ToListAsync();
+                                    .ThenInclude(x => x.Author)
+                                        .ThenInclude(x => x.Avatar)
+                                    .Include(x => x.Participants)
+                                        .ThenInclude(x => x.User)
+                                            .ThenInclude(x => x.Avatar)
+                                .Where(x => x.Messages.Where(y => y.IsActive).Count() > 0 && x.IsActive && x.Participants.Any(y => y.UserId == userId && y.State == true))
+                                //.OrderByDescending(x => x.Messages.Count == 0)                                          //пустые чаты в конце
+                                .OrderByDescending(x => x.Messages.OrderByDescending(y => y.Created).First().Created) //затем сортировка по времени последнего сообщения
+                                .Skip(skip)
+                                .Take(take)
+                                .Select(x => _mapper.Map<ChatModel>(x))
+                                .ToListAsync();
             return result;
         }
 
