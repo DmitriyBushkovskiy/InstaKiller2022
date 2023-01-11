@@ -13,6 +13,7 @@ namespace DAL.Entities
         public bool IsActive { get; set; } = true;
         public bool IsPrivate { get; set; }
         public Guid CreatorId { get; set; }
+        public string? Name { get; set; }
         public virtual List<Message> Messages { get; set; } = new List<Message>();
         public virtual List<ChatParticipant> Participants { get; set; } = new List<ChatParticipant>();
         public virtual User Creator { get; set; } = null!;

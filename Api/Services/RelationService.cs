@@ -73,11 +73,11 @@ namespace Api.Services
             //|| targetUser.Followers.FirstOrDefault(x => x.FollowerId == userId)?.State == RelationState.Follower.ToString()
             //|| userId == model.UserId)
             //{
-                var result = targetUser.Followers.Skip(model.Skip)
-                                                 .Take(model.Take)
-                                                 .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x.Follower))
-                                                 .ToList();
-                return result;
+            var result = targetUser.Followers.Skip(model.Skip)
+                                             .Take(model.Take)
+                                             .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x.Follower))
+                                             .ToList();
+            return result;
             //}
             //throw new UserDontHaveAccessException();
         }
@@ -136,30 +136,32 @@ namespace Api.Services
             if (user == default)
                 throw new UserNotFoundException();
 
-            var result = await _context.Users.AsNoTracking()
-                .Include(x => x.Avatar)
-                //.Include(x => x.Posts.Where(x => x.IsActive))
-                //.Include(x => x.Followers)
-                //.Include(x => x.Followed)
-                .Where(x => x.Username.Contains(model.Username) && x.Id != userId)
-                .Skip(model.Skip)
-                .Take(model.Take)
-                .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x))
-                .ToListAsync();
-            return result;
-        }
+            var r = nameof(SearchSelection.avalable);
 
-        //public async Task<List<FollowerModel>> GetBanned(Guid userId)
-        //{
-        //    if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
-        //        throw new UserNotFoundException();
-        //    var result = await _context.Relations.Include(x => x.Follower)
-        //                                        .Include(x => x.Follower.Avatar)
-        //                                        .Where(x => x.FollowedId == userId && x.State == RelationState.Banned.ToString() && x.Follower.IsActive)
-        //                                        .Select(x => _mapper.Map<FollowerModel>(x))
-        //                                        .ToListAsync();
-        //    return result;
-        //}
+            switch (model.Selection)
+            {
+
+                case nameof(SearchSelection.avalable):
+                    return await _context.Users.AsNoTracking()
+                                               .Include(x => x.Avatar)
+                                               .Include(x => x.Followers/*.FirstOrDefault(y => y.FollowerId == userId && y.State == RelationState.Follower.ToString())*/)
+                                               .Where(x => x.Username.Contains(model.Username)
+                                               && x.Id != userId && (!x.PrivateAccount && x.Followers.First(y => y.Follower.Id == userId).State != RelationState.Banned.ToString()
+                                               || x.PrivateAccount && x.Followers.Any(y => y.FollowerId == userId && y.State == RelationState.Follower.ToString())))
+                                               .Skip(model.Skip)
+                                               .Take(model.Take)
+                                               .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x))
+                                               .ToListAsync();
+                default:
+                    return await _context.Users.AsNoTracking()
+                                                 .Include(x => x.Avatar)
+                                                 .Where(x => x.Username.Contains(model.Username) && x.Id != userId)
+                                                 .Skip(model.Skip)
+                                                 .Take(model.Take)
+                                                 .Select(x => _mapper.Map<UserWithAvatarLinkModel>(x))
+                                                 .ToListAsync();
+            }
+        }
 
         public async Task<List<UserWithAvatarLinkModel>> GetBanned(Guid userId, DataByUserIdRequest model)
         {
@@ -179,10 +181,10 @@ namespace Api.Services
         {
             if (!await _context.Users.AnyAsync(x => x.Id == userId && x.IsActive))
                 throw new UserNotFoundException();
-           var targetUser = await _context.Users.Include(x => x.Followers.Where(x => x.State == RelationState.Follower.ToString()))
-                                                    .ThenInclude(x => x.Follower)
-                                                        .ThenInclude(x => x.Avatar)
-                                                 .FirstOrDefaultAsync(x => x.Id == model.UserId && x.IsActive);
+            var targetUser = await _context.Users.Include(x => x.Followers.Where(x => x.State == RelationState.Follower.ToString()))
+                                                     .ThenInclude(x => x.Follower)
+                                                         .ThenInclude(x => x.Avatar)
+                                                  .FirstOrDefaultAsync(x => x.Id == model.UserId && x.IsActive);
             if (targetUser == default)
                 throw new UserNotFoundException();
             if (!targetUser.PrivateAccount && targetUser.Followers.FirstOrDefault(x => x.FollowerId == userId)?.State != RelationState.Banned.ToString()

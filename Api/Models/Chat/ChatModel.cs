@@ -10,6 +10,7 @@ namespace Api.Models.Chat
         public DateTimeOffset Created { get; set; }
         public Guid CreatorId { get; set; }
         public bool IsPrivate { get; set; }
+        public string? Name { get; set; }
         public MessageModel? LastMessage { get; set; }
         public virtual List<UserWithAvatarLinkModel> Participants { get; set; } = null!;
     }

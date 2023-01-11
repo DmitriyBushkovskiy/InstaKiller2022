@@ -84,7 +84,9 @@ namespace Api.Mapper
             CreateMap<CreatePostRequest, CreatePostModel>();
 
             CreateMap<CreateMessageModel, Message>()
-                .ForMember(d => d.Created, m => m.MapFrom(s => DateTimeOffset.UtcNow));
+                .ForMember(d => d.Created, m => m.MapFrom(s => DateTimeOffset.UtcNow))
+                .ForMember(d => d.State, m => m.MapFrom(s => false))
+                ;
 
             CreateMap<Message, MessageModel>();
 

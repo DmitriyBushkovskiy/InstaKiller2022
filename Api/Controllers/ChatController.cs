@@ -41,21 +41,33 @@ namespace Api.Controllers
         }
 
         [HttpPost]
-        public async Task<Guid> CreateGroupChat()
+        public async Task<string> CreateGroupChat(string chatName)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            return await _chatService.CreateGroupChat(userId);
+            return await _chatService.CreateGroupChat(userId, chatName);
         }
 
         [HttpPut]
-        public async Task AddUserToGroupChat(Guid targetUserId, Guid chatId)
+        public async Task AddUsersToGroupChat(RenewUsersInChatRequest model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new UserNotAuthorizedException();
-            await _chatService.AddUserToGroupChat(userId, targetUserId, chatId);
+            foreach (var id in model.TargetUsersId)
+            {
+                await _chatService.AddUserToGroupChat(userId, id, model.ChatId);
+            }
+        }
+
+        [HttpPut]
+        public async Task RenewGroupChatUsersList(RenewUsersInChatRequest model)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            await _chatService.RenewGroupChatUsersList(userId, model);
         }
 
         [HttpPut]
@@ -74,6 +86,15 @@ namespace Api.Controllers
             if (userId == default)
                 throw new UserNotAuthorizedException();
             return await _chatService.GetChats(userId, skip, take);
+        }
+
+        [HttpGet]
+        public async Task<ChatModel?> GetChatData(Guid chatId)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new UserNotAuthorizedException();
+            return await _chatService.GetChatData(userId, chatId);
         }
 
         [HttpGet]
